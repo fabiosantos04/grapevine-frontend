@@ -1,0 +1,145 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --radius: 0.5rem;
+  --background: oklch(0.16 0.03 20);
+  --foreground: oklch(0.96 0.02 80);
+  --card: oklch(0.21 0.04 20);
+  --card-foreground: oklch(0.96 0.02 80);
+  --popover: oklch(0.21 0.04 20);
+  --popover-foreground: oklch(0.96 0.02 80);
+  --primary: oklch(0.45 0.18 20);
+  --primary-foreground: oklch(0.98 0.01 80);
+  --secondary: oklch(0.27 0.05 25);
+  --secondary-foreground: oklch(0.96 0.02 80);
+  --muted: oklch(0.24 0.03 25);
+  --muted-foreground: oklch(0.72 0.03 60);
+  --accent: oklch(0.78 0.13 75);
+  --accent-foreground: oklch(0.18 0.03 20);
+  --destructive: oklch(0.55 0.22 27);
+  --destructive-foreground: oklch(0.98 0.01 80);
+  --border: oklch(0.32 0.04 25);
+  --input: oklch(0.28 0.04 25);
+  --input-foreground: oklch(0.96 0.02 80);
+  --ring: oklch(0.78 0.13 75);
+  --gradient-wine: linear-gradient(135deg, oklch(0.35 0.16 18), oklch(0.45 0.2 22));
+  --gradient-gold: linear-gradient(135deg, oklch(0.78 0.13 75), oklch(0.65 0.15 55));
+  --shadow-wine: 0 20px 60px -20px oklch(0.35 0.18 20 / 0.6);
+  --shadow-gold: 0 10px 40px -10px oklch(0.78 0.13 75 / 0.35);
+  --font-display: "Playfair Display", Georgia, serif;
+  --font-sans: "Inter", system-ui, sans-serif;
+}
+
+.light {
+  --background: oklch(0.985 0.01 80);
+  --foreground: oklch(0.2 0.04 25);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.2 0.04 25);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.2 0.04 25);
+  --primary: oklch(0.42 0.17 22);
+  --primary-foreground: oklch(0.98 0.01 80);
+  --secondary: oklch(0.94 0.02 60);
+  --secondary-foreground: oklch(0.22 0.04 25);
+  --muted: oklch(0.94 0.015 60);
+  --muted-foreground: oklch(0.45 0.03 30);
+  --accent: oklch(0.72 0.14 70);
+  --accent-foreground: oklch(0.18 0.03 20);
+  --destructive: oklch(0.55 0.22 27);
+  --destructive-foreground: oklch(0.98 0.01 80);
+  --border: oklch(0.88 0.02 60);
+  --input: oklch(0.92 0.02 60);
+  --input-foreground: oklch(0.2 0.04 25);
+  --ring: oklch(0.72 0.14 70);
+  --gradient-wine: linear-gradient(135deg, oklch(0.5 0.18 18), oklch(0.6 0.2 30));
+  --gradient-gold: linear-gradient(135deg, oklch(0.78 0.13 75), oklch(0.65 0.15 55));
+  --shadow-wine: 0 20px 60px -20px oklch(0.45 0.18 22 / 0.25);
+  --shadow-gold: 0 10px 40px -10px oklch(0.78 0.13 75 / 0.3);
+}
+
+/* Paletas en modo oscuro (default) */
+:root[data-palette='malbec'] {
+  --primary: oklch(0.4 0.17 350);
+  --accent: oklch(0.7 0.14 60);
+  --ring: oklch(0.7 0.14 60);
+}
+:root[data-palette='reserva'] {
+  --primary: oklch(0.4 0.1 60);
+  --accent: oklch(0.78 0.14 90);
+  --ring: oklch(0.78 0.14 90);
+}
+:root[data-palette='blanco'] {
+  --primary: oklch(0.55 0.12 130);
+  --accent: oklch(0.82 0.14 95);
+  --ring: oklch(0.82 0.14 95);
+}
+
+/* Paletas en modo claro — misma especificidad que .light */
+.light[data-palette='malbec'] {
+  --primary: oklch(0.4 0.17 350);
+  --accent: oklch(0.7 0.14 60);
+  --ring: oklch(0.7 0.14 60);
+}
+.light[data-palette='reserva'] {
+  --primary: oklch(0.4 0.1 60);
+  --accent: oklch(0.78 0.14 90);
+  --ring: oklch(0.78 0.14 90);
+}
+.light[data-palette='blanco'] {
+  --primary: oklch(0.55 0.12 130);
+  --accent: oklch(0.82 0.14 95);
+  --ring: oklch(0.82 0.14 95);
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+  }
+
+  /* Fix inputs invisibles en todos los modos */
+  input,
+  textarea,
+  select {
+    background-color: var(--input);
+    color: var(--input-foreground);
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--muted-foreground);
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.01em;
+  }
+}
+
+@layer utilities {
+  .text-gradient-gold {
+    background: var(--gradient-gold);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .bg-gradient-wine {
+    background: var(--gradient-wine);
+  }
+  .shadow-wine {
+    box-shadow: var(--shadow-wine);
+  }
+  .shadow-gold {
+    box-shadow: var(--shadow-gold);
+  }
+}

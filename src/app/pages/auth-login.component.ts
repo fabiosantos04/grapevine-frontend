@@ -1,0 +1,72 @@
+import { Component, inject } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { Router, RouterLink } from '@angular/router';
+import { AuthService } from '../core/auth.service';
+import { ToastService } from '../core/toast.service';
+
+@Component({
+  selector: 'app-auth-login',
+  standalone: true,
+  imports: [FormsModule, RouterLink],
+  template: `
+    <h2 class="font-display text-3xl font-bold">Iniciar sesión</h2>
+    <p class="mt-2 text-sm text-muted-foreground">Ingresa a tu cuenta del ERP.</p>
+    <form class="mt-8 space-y-4" (ngSubmit)="onSubmit()">
+      <div>
+        <label class="text-sm font-medium" for="email">Correo electrónico</label>
+        <input
+          id="email"
+          type="email"
+          required
+          [(ngModel)]="email"
+          [ngModelOptions]="{ standalone: true }"
+          class="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+        />
+      </div>
+      <div>
+        <label class="text-sm font-medium" for="password">Contraseña</label>
+        <input
+          id="password"
+          type="password"
+          required
+          [(ngModel)]="password"
+          [ngModelOptions]="{ standalone: true }"
+          class="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+        />
+      </div>
+      <button
+        type="submit"
+        [disabled]="auth.loading()"
+        class="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+      >
+        @if (auth.loading()) {
+          <span>Ingresando…</span>
+        } @else {
+          <span>Ingresar</span>
+        }
+      </button>
+    </form>
+    <div class="mt-6 flex items-center justify-between text-sm">
+      <a routerLink="/auth/forgot" class="text-accent hover:underline">¿Olvidaste tu contraseña?</a>
+      <span class="text-xs text-muted-foreground">Las cuentas las crea el administrador</span>
+    </div>
+  `,
+})
+export class AuthLoginComponent {
+  protected readonly auth = inject(AuthService);
+  private  readonly router = inject(Router);
+  private  readonly toast  = inject(ToastService);
+
+  email    = '';
+  password = '';
+
+  async onSubmit(): Promise<void> {
+    try {
+      await this.auth.login({ email: this.email, password: this.password });
+      this.toast.success('Bienvenido');
+      await this.router.navigateByUrl('/app/dashboard');
+    } catch {
+      this.toast.error('Credenciales incorrectas');
+    }
+  }
+}
