@@ -18,13 +18,11 @@ export class AuthService {
   readonly loading         = this._loading.asReadonly();
   readonly isAuthenticated = computed(() => !!this._user());
 
-  // El rol viene directo del backend en el objeto de usuario
   readonly roles = computed(() => {
     const u = this._user();
     return u ? [u.role.toLowerCase()] : [];
   });
 
-  // Ready resuelve inmediatamente porque no hay sesión async que esperar
   readonly ready: Promise<void> = Promise.resolve();
 
   async login(request: LoginRequest): Promise<void> {
@@ -39,6 +37,18 @@ export class AuthService {
     } finally {
       this._loading.set(false);
     }
+  }
+
+  mustChangePassword(): boolean {
+    return this._user()?.mustChangePassword ?? false;
+  }
+
+  updateUser(partial: Partial<LoginResponse>): void {
+    const current = this._user();
+    if (!current) return;
+    const updated = { ...current, ...partial };
+    localStorage.setItem(USER_KEY, JSON.stringify(updated));
+    this._user.set(updated);
   }
 
   signOut(): void {

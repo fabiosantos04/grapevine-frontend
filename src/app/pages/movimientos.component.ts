@@ -2,14 +2,19 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../core/api.service';
+import { AuthService } from '../core/auth.service';
 import { PageHeaderComponent } from '../layout/page-header.component';
 import { ToastService } from '../core/toast.service';
+
+type MovementStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 
 type CashMovement = {
   id: number;
   type: 'INCOME' | 'EXPENSE';
   description: string;
   amount: number;
+  receiptUrl: string | null;
+  status: MovementStatus;
   createdAt: string;
 };
 
@@ -26,7 +31,19 @@ type CashRegister = {
   imports: [CommonModule, FormsModule, PageHeaderComponent],
   template: `
     <div>
-      <app-page-header title="Movimientos de caja" description="Historial de ingresos y egresos de la caja actual." />
+      <app-page-header title="Movimientos de caja" description="Historial de ingresos y egresos. Los egresos con comprobante requieren aprobación." />
+
+      @if (previewImage) {
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+          (click)="previewImage = null">
+          <div class="relative max-h-[90vh] max-w-2xl overflow-auto rounded-lg">
+            <img [src]="previewImage" alt="Comprobante" class="rounded-lg" />
+            <button type="button"
+              class="absolute right-2 top-2 rounded-full bg-black/50 px-2 py-0.5 text-sm text-white hover:bg-black/70"
+              (click)="previewImage = null">✕</button>
+          </div>
+        </div>
+      }
 
       @if (!caja) {
         <div class="rounded-xl border border-border/60 bg-card p-8 text-center text-muted-foreground">
@@ -68,6 +85,17 @@ type CashRegister = {
                     class="mt-1 w-full rounded-md border border-input px-3 py-2 text-sm"
                     [(ngModel)]="form.amount" [ngModelOptions]="{ standalone: true }" />
                 </div>
+                @if (form.type === 'EXPENSE') {
+                  <div>
+                    <label class="text-sm">Comprobante <span class="text-muted-foreground text-xs">(opcional — si adjuntas uno, el egreso quedará pendiente de aprobación)</span></label>
+                    <input type="file" accept="image/*"
+                      class="mt-1 w-full rounded-md border border-input px-3 py-2 text-sm"
+                      (change)="onReceiptChange($event)" />
+                    @if (receiptPreview) {
+                      <img [src]="receiptPreview" alt="Comprobante" class="mt-2 h-24 rounded-md object-cover border border-border" />
+                    }
+                  </div>
+                }
               </div>
               <div class="mt-6 flex justify-end gap-2">
                 <button type="button"
@@ -92,12 +120,19 @@ type CashRegister = {
                 <th class="px-4 py-3 text-left">Tipo</th>
                 <th class="px-4 py-3 text-left">Descripción</th>
                 <th class="px-4 py-3 text-right">Monto</th>
+                <th class="px-4 py-3 text-left">Estado</th>
+                <th class="px-4 py-3 text-left">Comprobante</th>
+                @if (isAdmin) {
+                  <th class="px-4 py-3 text-left">Acciones</th>
+                }
               </tr>
             </thead>
             <tbody>
               @if (!caja.movements.length) {
                 <tr>
-                  <td colspan="4" class="px-4 py-12 text-center text-muted-foreground">Sin movimientos registrados</td>
+                  <td [colSpan]="isAdmin ? 7 : 6" class="px-4 py-12 text-center text-muted-foreground">
+                    Sin movimientos registrados
+                  </td>
                 </tr>
               } @else {
                 @for (m of caja.movements; track m.id) {
@@ -114,6 +149,43 @@ type CashRegister = {
                       [class]="m.type === 'INCOME' ? 'text-accent' : 'text-destructive'">
                       {{ m.type === 'INCOME' ? '+' : '-' }}S/ {{ m.amount | number: '1.2-2' }}
                     </td>
+                    <td class="px-4 py-3">
+                      <span class="rounded-full px-2 py-0.5 text-xs"
+                        [class]="{
+                          'bg-yellow-500/20 text-yellow-600':   m.status === 'PENDING',
+                          'bg-accent/20 text-accent':           m.status === 'APPROVED',
+                          'bg-destructive/20 text-destructive': m.status === 'REJECTED'
+                        }">
+                        {{ statusLabel(m.status) }}
+                      </span>
+                    </td>
+                    <td class="px-4 py-3">
+                      @if (m.receiptUrl) {
+                        <button type="button"
+                          class="text-xs text-accent hover:underline"
+                          (click)="previewImage = m.receiptUrl">
+                          Ver
+                        </button>
+                      } @else {
+                        <span class="text-xs text-muted-foreground">—</span>
+                      }
+                    </td>
+                    @if (isAdmin) {
+                      <td class="px-4 py-3">
+                        @if (m.status === 'PENDING') {
+                          <div class="flex gap-2">
+                            <button type="button"
+                              class="rounded-md bg-accent/20 px-2 py-1 text-xs text-accent hover:bg-accent/30"
+                              (click)="approveMovement(m.id)">Aprobar</button>
+                            <button type="button"
+                              class="rounded-md bg-destructive/20 px-2 py-1 text-xs text-destructive hover:bg-destructive/30"
+                              (click)="rejectMovement(m.id)">Rechazar</button>
+                          </div>
+                        } @else {
+                          <span class="text-xs text-muted-foreground">—</span>
+                        }
+                      </td>
+                    }
                   </tr>
                 }
               }
@@ -126,12 +198,19 @@ type CashRegister = {
 })
 export class MovimientosComponent implements OnInit {
   private readonly api   = inject(ApiService);
+  private readonly auth  = inject(AuthService);
   private readonly toast = inject(ToastService);
 
   caja: CashRegister | null = null;
-  open   = false;
-  saving = false;
-  form   = { type: 'INCOME' as 'INCOME' | 'EXPENSE', description: '', amount: 0 };
+  open          = false;
+  saving        = false;
+  previewImage: string | null = null;
+  receiptPreview: string | null = null;
+  form = { type: 'INCOME' as 'INCOME' | 'EXPENSE', description: '', amount: 0, receiptUrl: '' };
+
+  get isAdmin(): boolean {
+    return this.auth.roles().includes('admin');
+  }
 
   async ngOnInit(): Promise<void> {
     await this.load();
@@ -146,13 +225,35 @@ export class MovimientosComponent implements OnInit {
   }
 
   resetForm(): void {
-    this.form = { type: 'INCOME', description: '', amount: 0 };
+    this.form = { type: 'INCOME', description: '', amount: 0, receiptUrl: '' };
+    this.receiptPreview = null;
+  }
+
+  onReceiptChange(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file  = input.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      this.receiptPreview      = reader.result as string;
+      this.form.receiptUrl = reader.result as string;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  statusLabel(s: MovementStatus): string {
+    return { PENDING: 'Pendiente', APPROVED: 'Aprobado', REJECTED: 'Rechazado' }[s];
   }
 
   async submit(): Promise<void> {
     this.saving = true;
     try {
-      await this.api.post('/cash/movement', this.form);
+      await this.api.post('/cash/movement', {
+        type:        this.form.type,
+        description: this.form.description,
+        amount:      this.form.amount,
+        receiptUrl:  this.form.receiptUrl || null,
+      });
       this.toast.success('Movimiento registrado');
       this.open = false;
       this.resetForm();
@@ -161,6 +262,26 @@ export class MovimientosComponent implements OnInit {
       this.toast.error('Error al registrar movimiento');
     } finally {
       this.saving = false;
+    }
+  }
+
+  async approveMovement(id: number): Promise<void> {
+    try {
+      await this.api.patch(`/cash/movements/${id}/approve`);
+      this.toast.success('Movimiento aprobado');
+      await this.load();
+    } catch {
+      this.toast.error('Error al aprobar');
+    }
+  }
+
+  async rejectMovement(id: number): Promise<void> {
+    try {
+      await this.api.patch(`/cash/movements/${id}/reject`);
+      this.toast.success('Movimiento rechazado');
+      await this.load();
+    } catch {
+      this.toast.error('Error al rechazar');
     }
   }
 }

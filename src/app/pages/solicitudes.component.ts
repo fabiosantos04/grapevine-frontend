@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { ApiService } from '../core/api.service';
 import { AuthService } from '../core/auth.service';
 import { PageHeaderComponent } from '../layout/page-header.component';
@@ -92,15 +93,13 @@ type Product = { id: number; name: string; stock: number };
               <th class="px-4 py-3 text-right">Cantidad</th>
               <th class="px-4 py-3 text-left">Justificación</th>
               <th class="px-4 py-3 text-left">Estado</th>
-              @if (isAdmin) {
-                <th class="px-4 py-3 text-left">Acciones</th>
-              }
+              <th class="px-4 py-3 text-left">Acciones</th>
             </tr>
           </thead>
           <tbody>
             @if (!rows.length) {
               <tr>
-                <td [colSpan]="isAdmin ? 7 : 6" class="px-4 py-12 text-center text-muted-foreground">
+                <td colspan="7" class="px-4 py-12 text-center text-muted-foreground">
                   Sin solicitudes registradas
                 </td>
               </tr>
@@ -115,29 +114,35 @@ type Product = { id: number; name: string; stock: number };
                   <td class="px-4 py-3">
                     <span class="rounded-full px-2 py-0.5 text-xs"
                       [class]="{
-                        'bg-yellow-500/20 text-yellow-600': r.status === 'PENDING',
-                        'bg-accent/20 text-accent':         r.status === 'APPROVED',
-                        'bg-destructive/20 text-destructive': r.status === 'REJECTED'
+                        'bg-yellow-500/20 text-yellow-600':     r.status === 'PENDING',
+                        'bg-accent/20 text-accent':             r.status === 'APPROVED',
+                        'bg-destructive/20 text-destructive':   r.status === 'REJECTED'
                       }">
                       {{ statusLabel(r.status) }}
                     </span>
                   </td>
-                  @if (isAdmin) {
-                    <td class="px-4 py-3">
-                      @if (r.status === 'PENDING') {
-                        <div class="flex gap-2">
-                          <button type="button"
-                            class="rounded-md bg-accent/20 px-2 py-1 text-xs text-accent hover:bg-accent/30"
-                            (click)="approve(r.id)">Aprobar</button>
-                          <button type="button"
-                            class="rounded-md bg-destructive/20 px-2 py-1 text-xs text-destructive hover:bg-destructive/30"
-                            (click)="reject(r.id)">Rechazar</button>
-                        </div>
-                      } @else {
+                  <td class="px-4 py-3">
+                    <div class="flex flex-wrap gap-1">
+                      @if (r.status === 'PENDING' && isAdmin) {
+                        <button type="button"
+                          class="rounded-md bg-accent/20 px-2 py-1 text-xs text-accent hover:bg-accent/30"
+                          (click)="approve(r.id)">Aprobar</button>
+                        <button type="button"
+                          class="rounded-md bg-destructive/20 px-2 py-1 text-xs text-destructive hover:bg-destructive/30"
+                          (click)="reject(r.id)">Rechazar</button>
+                      }
+                      @if (r.status === 'APPROVED' && isAdmin) {
+                        <button type="button"
+                          class="rounded-md bg-primary/80 px-2 py-1 text-xs text-primary-foreground hover:bg-primary"
+                          (click)="createPurchase(r)">
+                          + Crear compra
+                        </button>
+                      }
+                      @if (r.status === 'REJECTED' || (!isAdmin && r.status !== 'PENDING')) {
                         <span class="text-xs text-muted-foreground">—</span>
                       }
-                    </td>
-                  }
+                    </div>
+                  </td>
                 </tr>
               }
             }
@@ -148,15 +153,16 @@ type Product = { id: number; name: string; stock: number };
   `,
 })
 export class SolicitudesComponent implements OnInit {
-  private readonly api   = inject(ApiService);
-  private readonly auth  = inject(AuthService);
-  private readonly toast = inject(ToastService);
+  private readonly api    = inject(ApiService);
+  private readonly auth   = inject(AuthService);
+  private readonly router = inject(Router);
+  private readonly toast  = inject(ToastService);
 
   rows: PurchaseRequest[] = [];
   products: Product[]     = [];
-  open   = false;
-  saving = false;
-  form   = { productId: '' as number | '', quantity: 1, justification: '' };
+  open    = false;
+  saving  = false;
+  form    = { productId: '' as number | '', quantity: 1, justification: '' };
 
   get isAdmin(): boolean {
     return this.auth.roles().includes('admin');
@@ -209,27 +215,33 @@ export class SolicitudesComponent implements OnInit {
 
   async approve(id: number): Promise<void> {
     try {
-      console.log('Intentando aprobar solicitud:', id);
-      const result = await this.api.patch(`/purchase-requests/${id}/approve`);
-      console.log('Resultado:', result);
+      await this.api.patch(`/purchase-requests/${id}/approve`);
       this.toast.success('Solicitud aprobada');
       await this.load();
-    } catch (error) {
-      console.error('Error al aprobar:', error);
+    } catch {
       this.toast.error('Error al aprobar solicitud');
     }
   }
 
   async reject(id: number): Promise<void> {
     try {
-      console.log('Intentando rechazar solicitud:', id);
-      const result = await this.api.patch(`/purchase-requests/${id}/reject`);
-      console.log('Resultado:', result);
+      await this.api.patch(`/purchase-requests/${id}/reject`);
       this.toast.success('Solicitud rechazada');
       await this.load();
-    } catch (error) {
-      console.error('Error al rechazar:', error);
+    } catch {
       this.toast.error('Error al rechazar solicitud');
     }
+  }
+
+  createPurchase(r: PurchaseRequest): void {
+    this.router.navigate(['/app/compras'], {
+      state: {
+        prefill: {
+          productName: r.productName,
+          quantity:    r.quantity,
+        }
+      }
+    });
+    this.toast.success('Abriendo módulo de compras con los datos de la solicitud…');
   }
 }

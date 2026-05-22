@@ -1,12 +1,21 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, ElementRef, ViewChild } from '@angular/core';
 import { PageHeaderComponent } from '../layout/page-header.component';
 import { ApiService } from '../core/api.service';
 
-type SalesReport    = { totalOrders: number; totalSales: number };
-type CashReport     = { openedRegisters: number; totalCash: number };
-type InventoryReport = { totalProducts: number; lowStockProducts: number };
-type PurchaseReport = { totalPurchases: number; totalSpent: number };
+type MonthlyDataPoint = { month: string; sales: number; purchases: number };
+
+type FullReport = {
+  totalOrders: number;
+  totalSales: number;
+  openedRegisters: number;
+  totalCash: number;
+  totalProducts: number;
+  lowStockProducts: number;
+  totalPurchases: number;
+  totalSpent: number;
+  monthly: MonthlyDataPoint[];
+};
 
 @Component({
   selector: 'app-reportes',
@@ -14,48 +23,139 @@ type PurchaseReport = { totalPurchases: number; totalSpent: number };
   imports: [CommonModule, PageHeaderComponent],
   template: `
     <div>
-      <app-page-header title="Reportes de saldos" description="Resumen consolidado de ventas, caja, inventario y compras." />
+      <app-page-header title="Reportes de saldos" description="Resumen financiero consolidado." />
 
-      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-8">
         @for (c of cards; track c.label) {
-          <div class="rounded-xl border border-border/60 bg-card p-6">
+          <div class="rounded-xl border border-border/60 bg-card p-5">
             <p class="text-xs uppercase tracking-wider text-muted-foreground">{{ c.label }}</p>
-            <p class="mt-3 font-display text-3xl font-bold"
-              [class]="c.money ? 'text-accent' : ''">
+            <p class="mt-3 font-display text-3xl font-bold" [class]="c.money ? 'text-accent' : ''">
               @if (c.money) { S/ {{ c.value | number: '1.2-2' }} }
               @else { {{ c.value }} }
             </p>
           </div>
         }
       </div>
+
+      @if (report) {
+        <div class="grid gap-6 lg:grid-cols-2">
+          <div class="rounded-xl border border-border/60 bg-card p-6">
+            <h3 class="mb-4 font-semibold">Ventas vs Compras (últimos 6 meses)</h3>
+            <canvas #barChart></canvas>
+          </div>
+          <div class="rounded-xl border border-border/60 bg-card p-6">
+            <h3 class="mb-4 font-semibold">Tendencia de ventas</h3>
+            <canvas #lineChart></canvas>
+          </div>
+        </div>
+      }
     </div>
   `,
 })
 export class ReportesComponent implements OnInit {
+  @ViewChild('barChart')  barChartRef!:  ElementRef<HTMLCanvasElement>;
+  @ViewChild('lineChart') lineChartRef!: ElementRef<HTMLCanvasElement>;
+
   private readonly api = inject(ApiService);
 
+  report: FullReport | null = null;
   cards: { label: string; value: number; money?: boolean }[] = [];
 
   async ngOnInit(): Promise<void> {
     try {
-      const [sales, cash, inventory, purchases] = await Promise.all([
-        this.api.get<SalesReport>('/reports/sales'),
-        this.api.get<CashReport>('/reports/cash'),
-        this.api.get<InventoryReport>('/reports/inventory'),
-        this.api.get<PurchaseReport>('/reports/purchases'),
-      ]);
-
+      this.report = await this.api.get<FullReport>('/reports/full');
       this.cards = [
-        { label: 'Órdenes totales',      value: sales.totalOrders },
-        { label: 'Total en ventas',       value: Number(sales.totalSales),      money: true },
-        { label: 'Cajas abiertas',        value: cash.openedRegisters },
-        { label: 'Efectivo en caja',      value: Number(cash.totalCash),        money: true },
-        { label: 'Productos registrados', value: inventory.totalProducts },
-        { label: 'Bajo stock',            value: inventory.lowStockProducts },
-        { label: 'Compras registradas',   value: purchases.totalPurchases },
+        { label: 'Órdenes totales',      value: this.report.totalOrders },
+        { label: 'Total en ventas',       value: Number(this.report.totalSales),    money: true },
+        { label: 'Efectivo en caja',      value: Number(this.report.totalCash),     money: true },
+        { label: 'Total en compras',      value: Number(this.report.totalSpent),    money: true },
+        { label: 'Productos registrados', value: this.report.totalProducts },
+        { label: 'Bajo stock',            value: this.report.lowStockProducts },
+        { label: 'Compras registradas',   value: this.report.totalPurchases },
+        { label: 'Cajas registradas',     value: this.report.openedRegisters },
       ];
+
+      // Esperar a que Angular renderice los canvas con @if
+      setTimeout(() => this.renderCharts(), 100);
     } catch {
-      // silencioso, las tarjetas quedan vacías
+      // silencioso
+    }
+  }
+
+  private renderCharts(): void {
+    if (!this.report || !this.barChartRef || !this.lineChartRef) return;
+
+    const monthly = this.report.monthly;
+    const labels  = monthly.map(m => m.month);
+    const sales   = monthly.map(m => Number(m.sales));
+    const purch   = monthly.map(m => Number(m.purchases));
+
+    const Chart = (window as any).Chart;
+    if (!Chart) {
+      console.error('Chart.js no está cargado');
+      return;
+    }
+
+    const barCtx = this.barChartRef.nativeElement.getContext('2d');
+    if (barCtx) {
+      new Chart(barCtx, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [
+            {
+              label: 'Ventas',
+              data: sales,
+              backgroundColor: 'rgba(201, 168, 76, 0.8)',
+              borderRadius: 4,
+            },
+            {
+              label: 'Compras',
+              data: purch,
+              backgroundColor: 'rgba(122, 28, 46, 0.8)',
+              borderRadius: 4,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { position: 'bottom', labels: { color: '#a0a0a0' } } },
+          scales: {
+            y: { beginAtZero: true, ticks: { color: '#a0a0a0' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+            x: { ticks: { color: '#a0a0a0' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+          },
+        },
+      });
+    }
+
+    const lineCtx = this.lineChartRef.nativeElement.getContext('2d');
+    if (lineCtx) {
+      new Chart(lineCtx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [
+            {
+              label: 'Ventas',
+              data: sales,
+              borderColor: '#c9a84c',
+              backgroundColor: 'rgba(201, 168, 76, 0.15)',
+              tension: 0.4,
+              fill: true,
+              pointRadius: 5,
+              pointBackgroundColor: '#c9a84c',
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { position: 'bottom', labels: { color: '#a0a0a0' } } },
+          scales: {
+            y: { beginAtZero: true, ticks: { color: '#a0a0a0' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+            x: { ticks: { color: '#a0a0a0' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+          },
+        },
+      });
     }
   }
 }
