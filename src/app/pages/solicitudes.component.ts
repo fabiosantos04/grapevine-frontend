@@ -16,6 +16,7 @@ type PurchaseRequest = {
   quantity: number;
   justification: string;
   status: RequestStatus;
+  purchaseCreated: boolean;
   createdAt: string;
 };
 
@@ -114,9 +115,9 @@ type Product = { id: number; name: string; stock: number };
                   <td class="px-4 py-3">
                     <span class="rounded-full px-2 py-0.5 text-xs"
                       [class]="{
-                        'bg-yellow-500/20 text-yellow-600':     r.status === 'PENDING',
-                        'bg-accent/20 text-accent':             r.status === 'APPROVED',
-                        'bg-destructive/20 text-destructive':   r.status === 'REJECTED'
+                        'bg-yellow-500/20 text-yellow-600':   r.status === 'PENDING',
+                        'bg-accent/20 text-accent':           r.status === 'APPROVED',
+                        'bg-destructive/20 text-destructive': r.status === 'REJECTED'
                       }">
                       {{ statusLabel(r.status) }}
                     </span>
@@ -131,14 +132,17 @@ type Product = { id: number; name: string; stock: number };
                           class="rounded-md bg-destructive/20 px-2 py-1 text-xs text-destructive hover:bg-destructive/30"
                           (click)="reject(r.id)">Rechazar</button>
                       }
-                      @if (r.status === 'APPROVED' && isAdmin) {
+                      @if (r.status === 'APPROVED' && !r.purchaseCreated && isAdmin) {
                         <button type="button"
                           class="rounded-md bg-primary/80 px-2 py-1 text-xs text-primary-foreground hover:bg-primary"
                           (click)="createPurchase(r)">
                           + Crear compra
                         </button>
                       }
-                      @if (r.status === 'REJECTED' || (!isAdmin && r.status !== 'PENDING')) {
+                      @if (r.status === 'APPROVED' && r.purchaseCreated) {
+                        <span class="text-xs text-accent">✓ Compra creada</span>
+                      }
+                      @if (r.status === 'REJECTED') {
                         <span class="text-xs text-muted-foreground">—</span>
                       }
                     </div>
@@ -239,6 +243,7 @@ export class SolicitudesComponent implements OnInit {
         prefill: {
           productName: r.productName,
           quantity:    r.quantity,
+          requestId:   r.id,
         }
       }
     });

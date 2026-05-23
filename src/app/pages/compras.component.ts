@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { ApiService } from '../core/api.service';
 import { PageHeaderComponent } from '../layout/page-header.component';
 import { ToastService } from '../core/toast.service';
@@ -72,7 +73,6 @@ const STATUS_COLORS: Record<PurchaseStatus, string> = {
                   }
                 </select>
               </div>
-
               <div>
                 <label class="text-sm">Cuenta bancaria de pago <span class="text-muted-foreground text-xs">(opcional)</span></label>
                 <select class="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
@@ -85,7 +85,6 @@ const STATUS_COLORS: Record<PurchaseStatus, string> = {
                   }
                 </select>
               </div>
-
               <div class="border-t border-border/60 pt-3">
                 <label class="text-sm">Agregar producto</label>
                 <div class="mt-1 flex gap-2">
@@ -101,7 +100,6 @@ const STATUS_COLORS: Record<PurchaseStatus, string> = {
                     (click)="addItem()">Agregar</button>
                 </div>
               </div>
-
               @if (items.length) {
                 <table class="mt-2 w-full text-sm">
                   <thead class="text-xs text-muted-foreground">
@@ -155,7 +153,101 @@ const STATUS_COLORS: Record<PurchaseStatus, string> = {
         </div>
       }
 
-      <!-- Leyenda de estados -->
+      @if (editingPurchase) {
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" (click.self)="editingPurchase = null">
+          <div class="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg border border-border bg-card p-6 shadow-lg">
+            <h2 class="font-display text-lg font-semibold">Editar borrador #{{ editingPurchase.id }}</h2>
+            <div class="mt-4 space-y-3">
+              <div>
+                <label class="text-sm">Proveedor</label>
+                <select class="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  [(ngModel)]="editSupplierId" [ngModelOptions]="{ standalone: true }">
+                  <option value="">Seleccionar proveedor</option>
+                  @for (s of suppliers; track s.id) {
+                    <option [value]="s.id">{{ s.name }}</option>
+                  }
+                </select>
+              </div>
+              <div>
+                <label class="text-sm">Cuenta bancaria <span class="text-muted-foreground text-xs">(opcional)</span></label>
+                <select class="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  [(ngModel)]="editBankAccountId" [ngModelOptions]="{ standalone: true }">
+                  <option value="">Sin cuenta asignada</option>
+                  @for (b of bankAccounts; track b.id) {
+                    <option [value]="b.id">
+                      {{ b.bank }} - {{ b.accountNumber }} ({{ b.currency === 'PEN' ? 'S/' : '$' }} {{ b.balance | number: '1.2-2' }})
+                    </option>
+                  }
+                </select>
+              </div>
+              <div class="border-t border-border/60 pt-3">
+                <label class="text-sm">Agregar producto</label>
+                <div class="mt-1 flex gap-2">
+                  <select class="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    [(ngModel)]="editSelectedProductId" [ngModelOptions]="{ standalone: true }">
+                    <option value="">Selecciona producto</option>
+                    @for (p of products; track p.id) {
+                      <option [value]="p.id">{{ p.name }} — S/ {{ p.price | number: '1.2-2' }}</option>
+                    }
+                  </select>
+                  <button type="button"
+                    class="rounded-md border border-border px-3 py-2 text-sm hover:bg-muted/40"
+                    (click)="addEditItem()">Agregar</button>
+                </div>
+              </div>
+              @if (editItems.length) {
+                <table class="mt-2 w-full text-sm">
+                  <thead class="text-xs text-muted-foreground">
+                    <tr>
+                      <th class="text-left">Producto</th>
+                      <th class="text-center">Cantidad</th>
+                      <th class="text-right">Precio</th>
+                      <th class="text-right">Subtotal</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (it of editItems; track $index; let i = $index) {
+                      <tr class="border-t border-border/40">
+                        <td class="py-2">{{ it.productName }}</td>
+                        <td class="text-center">
+                          <input type="number" min="1"
+                            class="mx-auto w-16 rounded border border-input px-1 py-1 text-center"
+                            [(ngModel)]="it.quantity" [ngModelOptions]="{ standalone: true }" />
+                        </td>
+                        <td class="text-right font-mono">S/ {{ it.price | number: '1.2-2' }}</td>
+                        <td class="text-right font-mono">S/ {{ (it.quantity * it.price) | number: '1.2-2' }}</td>
+                        <td>
+                          <button type="button"
+                            class="rounded px-2 text-destructive hover:bg-muted/40"
+                            (click)="removeEditItem(i)">✕</button>
+                        </td>
+                      </tr>
+                    }
+                    <tr class="border-t border-border/60 font-bold">
+                      <td colspan="3" class="py-3 text-right">Total</td>
+                      <td class="text-right font-mono text-accent">S/ {{ editTotal() | number: '1.2-2' }}</td>
+                      <td></td>
+                    </tr>
+                  </tbody>
+                </table>
+              }
+            </div>
+            <div class="mt-6 flex justify-end gap-2">
+              <button type="button"
+                class="rounded-md border border-border px-4 py-2 text-sm"
+                (click)="editingPurchase = null">Cancelar</button>
+              <button type="button"
+                class="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-50"
+                [disabled]="savingEdit || !editSupplierId || !editItems.length"
+                (click)="saveEdit()">
+                {{ savingEdit ? 'Guardando…' : 'Guardar cambios' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      }
+
       <div class="mb-4 flex flex-wrap gap-2">
         @for (entry of statusEntries; track entry.key) {
           <span class="rounded-full px-2 py-0.5 text-xs" [class]="entry.color">
@@ -202,25 +294,35 @@ const STATUS_COLORS: Record<PurchaseStatus, string> = {
                   <td class="px-4 py-3">
                     <div class="flex gap-1 flex-wrap">
                       @if (r.status === 'DRAFT') {
-                        <button type="button" class="rounded-md bg-yellow-500/20 px-2 py-1 text-xs text-yellow-600 hover:bg-yellow-500/30"
+                        <button type="button"
+                          class="rounded-md bg-muted px-2 py-1 text-xs text-muted-foreground hover:bg-muted/60"
+                          (click)="openEdit(r)">Editar</button>
+                        <button type="button"
+                          class="rounded-md bg-yellow-500/20 px-2 py-1 text-xs text-yellow-600 hover:bg-yellow-500/30"
                           (click)="advance(r.id, 'send')">Enviar</button>
-                        <button type="button" class="rounded-md bg-destructive/20 px-2 py-1 text-xs text-destructive hover:bg-destructive/30"
+                        <button type="button"
+                          class="rounded-md bg-destructive/20 px-2 py-1 text-xs text-destructive hover:bg-destructive/30"
                           (click)="advance(r.id, 'cancel')">Cancelar</button>
                       }
                       @if (r.status === 'SENT') {
-                        <button type="button" class="rounded-md bg-blue-500/20 px-2 py-1 text-xs text-blue-400 hover:bg-blue-500/30"
+                        <button type="button"
+                          class="rounded-md bg-blue-500/20 px-2 py-1 text-xs text-blue-400 hover:bg-blue-500/30"
                           (click)="advance(r.id, 'confirm')">Confirmar</button>
-                        <button type="button" class="rounded-md bg-destructive/20 px-2 py-1 text-xs text-destructive hover:bg-destructive/30"
+                        <button type="button"
+                          class="rounded-md bg-destructive/20 px-2 py-1 text-xs text-destructive hover:bg-destructive/30"
                           (click)="advance(r.id, 'cancel')">Cancelar</button>
                       }
                       @if (r.status === 'CONFIRMED') {
-                        <button type="button" class="rounded-md bg-accent/20 px-2 py-1 text-xs text-accent hover:bg-accent/30"
+                        <button type="button"
+                          class="rounded-md bg-accent/20 px-2 py-1 text-xs text-accent hover:bg-accent/30"
                           (click)="advance(r.id, 'receive')">Recibir</button>
-                        <button type="button" class="rounded-md bg-destructive/20 px-2 py-1 text-xs text-destructive hover:bg-destructive/30"
+                        <button type="button"
+                          class="rounded-md bg-destructive/20 px-2 py-1 text-xs text-destructive hover:bg-destructive/30"
                           (click)="advance(r.id, 'cancel')">Cancelar</button>
                       }
                       @if (r.status === 'RECEIVED') {
-                        <button type="button" class="rounded-md bg-green-500/20 px-2 py-1 text-xs text-green-400 hover:bg-green-500/30"
+                        <button type="button"
+                          class="rounded-md bg-green-500/20 px-2 py-1 text-xs text-green-400 hover:bg-green-500/30"
                           (click)="advance(r.id, 'pay')">Pagar</button>
                       }
                       @if (r.status === 'PAID' || r.status === 'CANCELLED') {
@@ -238,22 +340,31 @@ const STATUS_COLORS: Record<PurchaseStatus, string> = {
   `,
 })
 export class ComprasComponent implements OnInit {
-  private readonly api   = inject(ApiService);
-  private readonly toast = inject(ToastService);
+  private readonly api    = inject(ApiService);
+  private readonly router = inject(Router);
+  private readonly toast  = inject(ToastService);
 
-  rows: PurchaseResponse[]  = [];
-  suppliers: Supplier[]     = [];
-  products: Product[]       = [];
+  rows: PurchaseResponse[]    = [];
+  suppliers: Supplier[]       = [];
+  products: Product[]         = [];
   bankAccounts: BankAccount[] = [];
-  items: PurchaseItem[]     = [];
+  items: PurchaseItem[]       = [];
   open              = false;
   saving            = false;
   supplierId        = '';
   bankAccountId     = '' as number | '';
   selectedProductId = '';
+  prefillRequestId: number | null = null;
+
+  editingPurchase: PurchaseResponse | null = null;
+  editItems: PurchaseItem[] = [];
+  editSupplierId            = '';
+  editBankAccountId         = '' as number | '';
+  editSelectedProductId     = '';
+  savingEdit                = false;
 
   readonly statusEntries = Object.entries(STATUS_LABELS).map(([key, label]) => ({
-    key: key as PurchaseStatus,
+    key:   key as PurchaseStatus,
     label,
     color: STATUS_COLORS[key as PurchaseStatus],
   }));
@@ -265,6 +376,22 @@ export class ComprasComponent implements OnInit {
       this.loadPurchases(),
       this.loadBankAccounts(),
     ]);
+
+    const prefill = history.state?.prefill;
+    if (prefill) {
+      const product = this.products.find(p => p.name === prefill.productName);
+      if (product) {
+        this.items = [{
+          productId:   product.id,
+          productName: product.name,
+          quantity:    prefill.quantity,
+          price:       product.price,
+        }];
+        this.prefillRequestId = prefill.requestId ?? null;
+        this.open = true;
+        this.toast.success(`Prellenado con: ${prefill.productName} × ${prefill.quantity}`);
+      }
+    }
   }
 
   async loadSuppliers(): Promise<void> {
@@ -288,9 +415,9 @@ export class ComprasComponent implements OnInit {
   }
 
   addItem(): void {
-    const p = this.products.find((x) => String(x.id) === this.selectedProductId);
+    const p = this.products.find(x => String(x.id) === this.selectedProductId);
     if (!p) return;
-    const existing = this.items.find((i) => i.productId === p.id);
+    const existing = this.items.find(i => i.productId === p.id);
     if (existing) { existing.quantity++; }
     else { this.items = [...this.items, { productId: p.id, productName: p.name, quantity: 1, price: p.price }]; }
     this.selectedProductId = '';
@@ -304,19 +431,15 @@ export class ComprasComponent implements OnInit {
     return this.items.reduce((s, i) => s + i.quantity * i.price, 0);
   }
 
-  statusLabel(s: PurchaseStatus): string {
-    return STATUS_LABELS[s] ?? s;
-  }
-
-  statusColor(s: PurchaseStatus): string {
-    return STATUS_COLORS[s] ?? '';
-  }
+  statusLabel(s: PurchaseStatus): string { return STATUS_LABELS[s] ?? s; }
+  statusColor(s: PurchaseStatus): string { return STATUS_COLORS[s] ?? ''; }
 
   resetForm(): void {
-    this.supplierId = '';
-    this.bankAccountId = '';
+    this.supplierId       = '';
+    this.bankAccountId    = '';
     this.selectedProductId = '';
-    this.items = [];
+    this.items            = [];
+    this.prefillRequestId = null;
   }
 
   async submit(): Promise<void> {
@@ -325,20 +448,69 @@ export class ComprasComponent implements OnInit {
       const created = await this.api.post<PurchaseResponse>('/purchases', {
         supplierId:    Number(this.supplierId),
         bankAccountId: this.bankAccountId ? Number(this.bankAccountId) : null,
-        items: this.items.map((i) => ({
-          productId: i.productId,
-          quantity:  i.quantity,
-          price:     i.price,
-        })),
+        items: this.items.map(i => ({ productId: i.productId, quantity: i.quantity, price: i.price })),
       });
       this.rows = [created, ...this.rows];
       this.toast.success('Orden creada en borrador');
       this.open = false;
+
+      if (this.prefillRequestId) {
+        await this.api.patch(`/purchase-requests/${this.prefillRequestId}/purchase-created`);
+        this.prefillRequestId = null;
+      }
+
       this.resetForm();
     } catch {
       this.toast.error('Error al crear orden');
     } finally {
       this.saving = false;
+    }
+  }
+
+  openEdit(r: PurchaseResponse): void {
+    this.editingPurchase   = r;
+    this.editSupplierId    = String(this.suppliers.find(s => s.name === r.supplierName)?.id ?? '');
+    this.editBankAccountId = '';
+    this.editItems = r.items.map(i => {
+      const p = this.products.find(p => p.name === i.productName);
+      return { productId: p?.id ?? 0, productName: i.productName, quantity: i.quantity, price: Number(i.price) };
+    });
+    this.editSelectedProductId = '';
+  }
+
+  addEditItem(): void {
+    const p = this.products.find(x => String(x.id) === this.editSelectedProductId);
+    if (!p) return;
+    const existing = this.editItems.find(i => i.productId === p.id);
+    if (existing) { existing.quantity++; }
+    else { this.editItems = [...this.editItems, { productId: p.id, productName: p.name, quantity: 1, price: p.price }]; }
+    this.editSelectedProductId = '';
+  }
+
+  removeEditItem(i: number): void {
+    this.editItems = this.editItems.filter((_, j) => j !== i);
+  }
+
+  editTotal(): number {
+    return this.editItems.reduce((s, i) => s + i.quantity * i.price, 0);
+  }
+
+  async saveEdit(): Promise<void> {
+    if (!this.editingPurchase) return;
+    this.savingEdit = true;
+    try {
+      const updated = await this.api.put<PurchaseResponse>(`/purchases/${this.editingPurchase.id}`, {
+        supplierId:    Number(this.editSupplierId),
+        bankAccountId: this.editBankAccountId ? Number(this.editBankAccountId) : null,
+        items: this.editItems.map(i => ({ productId: i.productId, quantity: i.quantity, price: i.price })),
+      });
+      this.rows = this.rows.map(r => r.id === updated.id ? updated : r);
+      this.toast.success('Orden actualizada');
+      this.editingPurchase = null;
+    } catch {
+      this.toast.error('Error al actualizar orden');
+    } finally {
+      this.savingEdit = false;
     }
   }
 

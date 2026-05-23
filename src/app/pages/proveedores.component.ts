@@ -80,11 +80,12 @@ type Supplier = {
               <th class="p-3">Teléfono</th>
               <th class="p-3">Dirección</th>
               <th class="p-3">Estado</th>
+              <th class="p-3">Acciones</th>
             </tr>
           </thead>
           <tbody>
             @for (p of list; track p.id) {
-              <tr class="border-t border-border/60">
+              <tr class="border-t border-border/60" [class]="!p.active ? 'opacity-60' : ''">
                 <td class="p-3 font-medium">{{ p.name }}</td>
                 <td class="p-3 text-muted-foreground">{{ p.email || '—' }}</td>
                 <td class="p-3 text-muted-foreground">{{ p.phone || '—' }}</td>
@@ -95,11 +96,21 @@ type Supplier = {
                     {{ p.active ? 'Activo' : 'Inactivo' }}
                   </span>
                 </td>
+                <td class="p-3">
+                  <button type="button"
+                    class="rounded-md px-2 py-1 text-xs"
+                    [class]="p.active
+                      ? 'bg-destructive/20 text-destructive hover:bg-destructive/30'
+                      : 'bg-accent/20 text-accent hover:bg-accent/30'"
+                    (click)="toggleActive(p)">
+                    {{ p.active ? 'Inhabilitar' : 'Habilitar' }}
+                  </button>
+                </td>
               </tr>
             }
             @if (!list.length) {
               <tr>
-                <td colspan="5" class="p-6 text-center text-muted-foreground">Sin proveedores registrados.</td>
+                <td colspan="6" class="p-6 text-center text-muted-foreground">Sin proveedores registrados.</td>
               </tr>
             }
           </tbody>
@@ -113,9 +124,9 @@ export class ProveedoresComponent implements OnInit {
   private readonly toast = inject(ToastService);
 
   list: Supplier[] = [];
-  open  = false;
+  open   = false;
   saving = false;
-  form = { name: '', email: '', phone: '', address: '' };
+  form   = { name: '', email: '', phone: '', address: '' };
 
   async ngOnInit(): Promise<void> {
     await this.load();
@@ -141,6 +152,16 @@ export class ProveedoresComponent implements OnInit {
       this.toast.error('Error al crear proveedor');
     } finally {
       this.saving = false;
+    }
+  }
+
+  async toggleActive(p: Supplier): Promise<void> {
+    try {
+      const updated = await this.api.patch<Supplier>(`/suppliers/${p.id}/toggle-active`);
+      this.list = this.list.map(s => s.id === updated.id ? updated : s);
+      this.toast.success(updated.active ? 'Proveedor habilitado' : 'Proveedor inhabilitado');
+    } catch {
+      this.toast.error('Error al cambiar estado del proveedor');
     }
   }
 }

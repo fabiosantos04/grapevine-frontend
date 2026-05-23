@@ -100,11 +100,12 @@ type BankAccount = {
               <th class="p-3">Moneda</th>
               <th class="p-3 text-right">Saldo</th>
               <th class="p-3">Estado</th>
+              <th class="p-3">Acciones</th>
             </tr>
           </thead>
           <tbody>
             @for (a of list; track a.id) {
-              <tr class="border-t border-border/60">
+              <tr class="border-t border-border/60" [class]="!a.active ? 'opacity-60' : ''">
                 <td class="p-3 font-medium">{{ a.bank }}</td>
                 <td class="p-3 font-mono text-muted-foreground">{{ a.accountNumber }}</td>
                 <td class="p-3 text-muted-foreground">{{ a.type === 'AHORRO' ? 'Ahorro' : 'Corriente' }}</td>
@@ -118,11 +119,21 @@ type BankAccount = {
                     {{ a.active ? 'Activa' : 'Inactiva' }}
                   </span>
                 </td>
+                <td class="p-3">
+                  <button type="button"
+                    class="rounded-md px-2 py-1 text-xs"
+                    [class]="a.active
+                      ? 'bg-destructive/20 text-destructive hover:bg-destructive/30'
+                      : 'bg-accent/20 text-accent hover:bg-accent/30'"
+                    (click)="toggleActive(a)">
+                    {{ a.active ? 'Inhabilitar' : 'Habilitar' }}
+                  </button>
+                </td>
               </tr>
             }
             @if (!list.length) {
               <tr>
-                <td colspan="6" class="p-6 text-center text-muted-foreground">Sin cuentas bancarias registradas.</td>
+                <td colspan="7" class="p-6 text-center text-muted-foreground">Sin cuentas bancarias registradas.</td>
               </tr>
             }
           </tbody>
@@ -170,6 +181,16 @@ export class CuentasComponent implements OnInit {
       this.toast.error('Error al crear cuenta');
     } finally {
       this.saving = false;
+    }
+  }
+
+  async toggleActive(a: BankAccount): Promise<void> {
+    try {
+      const updated = await this.api.patch<BankAccount>(`/bank-accounts/${a.id}/toggle-active`);
+      this.list = this.list.map(c => c.id === updated.id ? updated : c);
+      this.toast.success(updated.active ? 'Cuenta habilitada' : 'Cuenta inhabilitada');
+    } catch {
+      this.toast.error('Error al cambiar estado de la cuenta');
     }
   }
 }
