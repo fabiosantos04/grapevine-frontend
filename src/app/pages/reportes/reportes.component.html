@@ -1,0 +1,28 @@
+<div>
+  <app-page-header title="Reportes de saldos" description="Resumen financiero consolidado." />
+
+  <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+    @for (c of cards; track c.label) {
+      <div class="rounded-xl border border-border/60 bg-card p-5">
+        <p class="text-xs uppercase tracking-wider text-muted-foreground">{{ c.label }}</p>
+        <p class="mt-3 font-display text-3xl font-bold" [class]="c.money ? 'text-accent' : ''">
+          @if (c.money) { S/ {{ c.value | number: '1.2-2' }} }
+          @else { {{ c.value }} }
+        </p>
+      </div>
+    }
+  </div>
+
+  @if (report) {
+    <div class="grid gap-6 lg:grid-cols-2">
+      <div class="rounded-xl border border-border/60 bg-card p-6">
+        <h3 class="mb-4 font-semibold">Ventas vs Compras (últimos 6 meses)</h3>
+        <canvas #barChart></canvas>
+      </div>
+      <div class="rounded-xl border border-border/60 bg-card p-6">
+        <h3 class="mb-4 font-semibold">Tendencia de ventas</h3>
+        <canvas #lineChart></canvas>
+      </div>
+    </div>
+  }
+</div>

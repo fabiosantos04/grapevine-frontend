@@ -65,6 +65,7 @@ const NAV: NavGroup[] = [
   standalone: true,
   imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive, SettingsMenuComponent],
   templateUrl: './app-shell.component.html',
+  styleUrl: './app-shell.component.css',
 })
 export class AppShellComponent {
   readonly auth = inject(AuthService);

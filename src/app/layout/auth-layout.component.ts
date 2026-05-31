@@ -5,32 +5,7 @@ import { RouterLink, RouterOutlet } from '@angular/router';
   selector: 'app-auth-layout',
   standalone: true,
   imports: [RouterOutlet, RouterLink],
-  template: `
-    <div class="grid min-h-screen bg-background lg:grid-cols-2">
-      <div class="relative hidden items-center justify-center overflow-hidden bg-gradient-wine p-12 lg:flex">
-        <div
-          class="absolute inset-0 opacity-20"
-          style="background: radial-gradient(circle at 30% 20%, var(--accent) 0%, transparent 50%);"
-        ></div>
-        <div class="relative max-w-md text-primary-foreground">
-          <a routerLink="/" class="inline-flex items-center gap-2 text-primary-foreground">
-            <span class="text-3xl">🍷</span>
-            <span class="font-display text-2xl font-bold">Vitivinícolas Perú</span>
-          </a>
-          <h1 class="mt-12 font-display text-5xl font-bold leading-tight">
-            Tradición y tecnología <span class="text-accent">en cada barrica</span>.
-          </h1>
-          <p class="mt-6 text-lg opacity-90">
-            ERP integral para gestión de ventas, almacén, caja, compras y reportes financieros.
-          </p>
-        </div>
-      </div>
-      <div class="flex items-center justify-center p-6 lg:p-12">
-        <div class="w-full max-w-md">
-          <router-outlet />
-        </div>
-      </div>
-    </div>
-  `,
+  templateUrl: './auth-layout.component.html',
+  styleUrl: './auth-layout.component.css',
 })
 export class AuthLayoutComponent {}

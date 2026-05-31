@@ -1,0 +1,46 @@
+<div>
+  <app-page-header title="Logs de auditoría" description="Trazabilidad de acciones del sistema." />
+
+  @if (!auth.roles().includes('admin')) {
+    <p class="mb-4 rounded-lg border border-border/60 bg-card p-4 text-sm text-muted-foreground">
+      Solo los administradores pueden ver el historial completo.
+    </p>
+  }
+
+  <div class="overflow-hidden rounded-xl border border-border/60 bg-card">
+    <table class="w-full text-sm">
+      <thead class="bg-card-foreground/5 text-xs uppercase text-muted-foreground">
+        <tr>
+          <th class="px-4 py-3 text-left">Fecha</th>
+          <th class="px-4 py-3 text-left">Acción</th>
+          <th class="px-4 py-3 text-left">Detalle</th>
+          <th class="px-4 py-3 text-left">Usuario</th>
+        </tr>
+      </thead>
+      <tbody>
+        @if (!rows.length) {
+          <tr>
+            <td colspan="4" class="px-4 py-12 text-center text-muted-foreground">Sin registros</td>
+          </tr>
+        } @else {
+          @for (r of rows; track $index) {
+            <tr class="border-t border-border/40">
+              <td class="px-4 py-3 text-muted-foreground">{{ r.date | date: 'dd/MM/yyyy HH:mm' }}</td>
+              <td class="px-4 py-3">
+                <span class="rounded-full px-2 py-0.5 text-xs"
+                  [class]="{
+                    'bg-accent/20 text-accent':         r.action === 'Solicitud de compra',
+                    'bg-yellow-500/20 text-yellow-600': r.action === 'Ajuste de stock'
+                  }">
+                  {{ r.action }}
+                </span>
+              </td>
+              <td class="px-4 py-3 text-muted-foreground">{{ r.detail }}</td>
+              <td class="px-4 py-3 font-medium">{{ r.user }}</td>
+            </tr>
+          }
+        }
+      </tbody>
+    </table>
+  </div>
+</div>
