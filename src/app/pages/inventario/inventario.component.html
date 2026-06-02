@@ -1,5 +1,5 @@
 <div>
-  <app-page-header title="Inventario físico" description="Historial de ajustes de stock por producto.">
+  <app-page-header title="Inventario físico" description="Stock por almacén y ajustes de inventario.">
     <div slot="actions">
       <button type="button"
         class="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground"
@@ -15,18 +15,28 @@
         <h2 class="font-display text-lg font-semibold">Ajuste de stock</h2>
         <div class="mt-4 space-y-3">
           <div>
+            <label class="text-sm">Almacén</label>
+            <select class="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              [(ngModel)]="form.warehouseId" [ngModelOptions]="{ standalone: true }">
+              <option value="">Selecciona almacén</option>
+              @for (w of warehouses; track w.id) {
+                <option [value]="w.id">{{ w.name }}</option>
+              }
+            </select>
+          </div>
+          <div>
             <label class="text-sm">Producto</label>
             <select class="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
               [(ngModel)]="form.productId" [ngModelOptions]="{ standalone: true }"
               (ngModelChange)="onProductChange($event)">
               <option value="">Selecciona producto</option>
               @for (p of products; track p.id) {
-                <option [value]="p.id">{{ p.name }} (stock actual: {{ p.stock }})</option>
+                <option [value]="p.id">{{ p.name }} (stock total: {{ p.stock }})</option>
               }
             </select>
           </div>
           <div>
-            <label class="text-sm">Nuevo stock</label>
+            <label class="text-sm">Nuevo stock en este almacén</label>
             <input type="number" min="0"
               class="mt-1 w-full rounded-md border border-input px-3 py-2 text-sm"
               [(ngModel)]="form.newStock" [ngModelOptions]="{ standalone: true }" />
@@ -44,7 +54,7 @@
             (click)="open = false">Cancelar</button>
           <button type="button"
             class="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-50"
-            [disabled]="saving || !form.productId || !form.reason"
+            [disabled]="saving || !form.productId || !form.warehouseId || !form.reason"
             (click)="submit()">
             {{ saving ? 'Guardando…' : 'Guardar ajuste' }}
           </button>
@@ -53,37 +63,110 @@
     </div>
   }
 
-  <div class="overflow-hidden rounded-xl border border-border/60 bg-card">
-    <table class="w-full text-sm">
-      <thead class="bg-card-foreground/5 text-xs uppercase text-muted-foreground">
-        <tr>
-          <th class="px-4 py-3 text-left">Fecha</th>
-          <th class="px-4 py-3 text-left">Producto</th>
-          <th class="px-4 py-3 text-right">Stock anterior</th>
-          <th class="px-4 py-3 text-right">Stock nuevo</th>
-          <th class="px-4 py-3 text-left">Razón</th>
-        </tr>
-      </thead>
-      <tbody>
-        @if (!rows.length) {
-          <tr>
-            <td colspan="5" class="px-4 py-12 text-center text-muted-foreground">Sin ajustes registrados</td>
-          </tr>
-        } @else {
-          @for (r of rows; track r.id) {
-            <tr class="border-t border-border/40">
-              <td class="px-4 py-3 text-muted-foreground">{{ r.createdAt | date: 'dd/MM/yyyy HH:mm' }}</td>
-              <td class="px-4 py-3 font-medium">{{ r.productName }}</td>
-              <td class="px-4 py-3 text-right font-mono text-muted-foreground">{{ r.previousStock }}</td>
-              <td class="px-4 py-3 text-right font-mono"
-                [class]="r.newStock > r.previousStock ? 'text-accent' : 'text-destructive'">
-                {{ r.newStock }}
-              </td>
-              <td class="px-4 py-3 text-muted-foreground">{{ r.reason }}</td>
-            </tr>
-          }
+  <!-- Filtro por almacén -->
+  <div class="mb-4 flex flex-wrap items-center gap-3">
+    <div class="flex items-center gap-2">
+      <label class="text-sm text-muted-foreground">Filtrar por almacén:</label>
+      <select class="rounded-md border border-input bg-background px-3 py-2 text-sm"
+        [(ngModel)]="filterWarehouseId" [ngModelOptions]="{ standalone: true }"
+        (ngModelChange)="applyStockFilter()">
+        <option value="">Todos los almacenes</option>
+        @for (w of warehouses; track w.id) {
+          <option [value]="w.id">{{ w.name }}</option>
         }
-      </tbody>
-    </table>
+      </select>
+    </div>
+
+    <!-- Tabs -->
+    <div class="ml-auto flex rounded-lg border border-border overflow-hidden">
+      <button type="button"
+        class="px-4 py-2 text-sm transition-colors"
+        [class]="activeTab === 'stock' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted/40'"
+        (click)="activeTab = 'stock'">
+        Stock actual
+      </button>
+      <button type="button"
+        class="px-4 py-2 text-sm transition-colors border-l border-border"
+        [class]="activeTab === 'ajustes' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted/40'"
+        (click)="activeTab = 'ajustes'">
+        Historial de ajustes
+      </button>
+    </div>
   </div>
+
+  <!-- Tab: Stock actual -->
+  @if (activeTab === 'stock') {
+    <div class="overflow-hidden rounded-xl border border-border/60 bg-card">
+      <table class="w-full text-sm">
+        <thead class="bg-card-foreground/5 text-xs uppercase text-muted-foreground">
+          <tr>
+            <th class="px-4 py-3 text-left">Almacén</th>
+            <th class="px-4 py-3 text-left">Producto</th>
+            <th class="px-4 py-3 text-left">Categoría</th>
+            <th class="px-4 py-3 text-right">Stock</th>
+          </tr>
+        </thead>
+        <tbody>
+          @if (!stockRows.length) {
+            <tr>
+              <td colspan="4" class="px-4 py-12 text-center text-muted-foreground">
+                Sin stock registrado{{ filterWarehouseId ? ' para este almacén' : '' }}.
+              </td>
+            </tr>
+          } @else {
+            @for (r of stockRows; track r.warehouseStockId) {
+              <tr class="border-t border-border/40" [class]="r.stock <= 5 ? 'bg-destructive/5' : ''">
+                <td class="px-4 py-3 text-muted-foreground">{{ r.warehouseName }}</td>
+                <td class="px-4 py-3 font-medium">{{ r.productName }}</td>
+                <td class="px-4 py-3 text-muted-foreground text-xs">{{ r.productCategory }}</td>
+                <td class="px-4 py-3 text-right font-mono"
+                  [class]="r.stock <= 5 ? 'font-bold text-destructive' : 'text-accent'">
+                  {{ r.stock }}
+                </td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+
+  <!-- Tab: Historial de ajustes -->
+  @if (activeTab === 'ajustes') {
+    <div class="overflow-hidden rounded-xl border border-border/60 bg-card">
+      <table class="w-full text-sm">
+        <thead class="bg-card-foreground/5 text-xs uppercase text-muted-foreground">
+          <tr>
+            <th class="px-4 py-3 text-left">Fecha</th>
+            <th class="px-4 py-3 text-left">Almacén</th>
+            <th class="px-4 py-3 text-left">Producto</th>
+            <th class="px-4 py-3 text-right">Stock anterior</th>
+            <th class="px-4 py-3 text-right">Stock nuevo</th>
+            <th class="px-4 py-3 text-left">Razón</th>
+          </tr>
+        </thead>
+        <tbody>
+          @if (!rows.length) {
+            <tr>
+              <td colspan="6" class="px-4 py-12 text-center text-muted-foreground">Sin ajustes registrados</td>
+            </tr>
+          } @else {
+            @for (r of rows; track r.id) {
+              <tr class="border-t border-border/40">
+                <td class="px-4 py-3 text-muted-foreground">{{ r.createdAt | date: 'dd/MM/yyyy HH:mm' }}</td>
+                <td class="px-4 py-3 text-muted-foreground">{{ r.warehouseName }}</td>
+                <td class="px-4 py-3 font-medium">{{ r.productName }}</td>
+                <td class="px-4 py-3 text-right font-mono text-muted-foreground">{{ r.previousStock }}</td>
+                <td class="px-4 py-3 text-right font-mono"
+                  [class]="r.newStock > r.previousStock ? 'text-accent' : 'text-destructive'">
+                  {{ r.newStock }}
+                </td>
+                <td class="px-4 py-3 text-muted-foreground">{{ r.reason }}</td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+  }
 </div>

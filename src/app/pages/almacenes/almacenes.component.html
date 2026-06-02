@@ -3,7 +3,7 @@
     <div slot="actions">
       <button type="button"
         class="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground"
-        (click)="open = true; resetForm()">
+        (click)="openCreate()">
         + Nuevo almacén
       </button>
     </div>
@@ -11,8 +11,10 @@
 
   @if (open) {
     <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" (click.self)="open = false">
-      <div class="w-full max-w-md rounded-lg border border-border bg-card p-6 shadow-lg">
-        <h2 class="font-display text-lg font-semibold">Nuevo almacén</h2>
+      <div class="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-lg border border-border bg-card p-6 shadow-lg">
+        <h2 class="font-display text-lg font-semibold">
+          {{ editingId ? 'Editar almacén' : 'Nuevo almacén' }}
+        </h2>
         <div class="mt-4 space-y-3">
           <div>
             <label class="text-sm">Nombre</label>
@@ -24,7 +26,54 @@
             <input class="mt-1 w-full rounded-md border border-input px-3 py-2 text-sm"
               [(ngModel)]="form.address" [ngModelOptions]="{ standalone: true }" />
           </div>
+
+          <div class="border-t border-border/60 pt-3">
+            <p class="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Ubigeo</p>
+            <div class="space-y-2">
+              <div>
+                <label class="text-sm">Departamento</label>
+                <select class="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  [(ngModel)]="form.department" [ngModelOptions]="{ standalone: true }"
+                  (ngModelChange)="onDepartmentChange()">
+                  <option value="">Selecciona departamento</option>
+                  @for (d of ubigeoData; track d.name) {
+                    <option [value]="d.name">{{ d.name }}</option>
+                  }
+                </select>
+              </div>
+              <div>
+                <label class="text-sm">Provincia</label>
+                <select class="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  [(ngModel)]="form.province" [ngModelOptions]="{ standalone: true }"
+                  [disabled]="!filteredProvinces.length"
+                  (ngModelChange)="onProvinceChange()">
+                  <option value="">Selecciona provincia</option>
+                  @for (p of filteredProvinces; track p.name) {
+                    <option [value]="p.name">{{ p.name }}</option>
+                  }
+                </select>
+              </div>
+              <div>
+                <label class="text-sm">Distrito</label>
+                <select class="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  [(ngModel)]="form.district" [ngModelOptions]="{ standalone: true }"
+                  [disabled]="!filteredDistricts.length"
+                  (ngModelChange)="onDistrictChange()">
+                  <option value="">Selecciona distrito</option>
+                  @for (d of filteredDistricts; track d.id) {
+                    <option [value]="d.name">{{ d.name }}</option>
+                  }
+                </select>
+              </div>
+              @if (form.ubigeoCode) {
+                <p class="text-xs text-muted-foreground">
+                  Código INEI: <span class="font-mono font-semibold">{{ form.ubigeoCode }}</span>
+                </p>
+              }
+            </div>
+          </div>
         </div>
+
         <div class="mt-6 flex justify-end gap-2">
           <button type="button"
             class="rounded-md border border-border px-4 py-2 text-sm"
@@ -46,25 +95,53 @@
         <tr>
           <th class="p-3">Nombre</th>
           <th class="p-3">Dirección</th>
+          <th class="p-3">Ubigeo</th>
           <th class="p-3">Estado</th>
+          <th class="p-3">Acciones</th>
         </tr>
       </thead>
       <tbody>
         @for (w of list; track w.id) {
-          <tr class="border-t border-border/60">
+          <tr class="border-t border-border/60" [class]="!w.active ? 'opacity-60' : ''">
             <td class="p-3 font-medium">{{ w.name }}</td>
             <td class="p-3 text-muted-foreground">{{ w.address || '—' }}</td>
+            <td class="p-3 text-muted-foreground text-xs">
+              @if (w.department) {
+                {{ w.department }} › {{ w.province }} › {{ w.district }}
+                <span class="ml-1 font-mono text-accent">{{ w.ubigeoCode }}</span>
+              } @else {
+                —
+              }
+            </td>
             <td class="p-3">
               <span class="rounded-full px-2 py-0.5 text-xs"
                 [class]="w.active ? 'bg-accent/20 text-accent' : 'bg-muted text-muted-foreground'">
                 {{ w.active ? 'Activo' : 'Inactivo' }}
               </span>
             </td>
+            <td class="p-3">
+              <div class="flex flex-wrap gap-1">
+                <button type="button"
+                  class="rounded-md border border-border px-2 py-1 text-xs hover:bg-muted/40"
+                  (click)="openEdit(w)">Editar</button>
+                <button type="button"
+                  class="rounded-md bg-accent/20 px-2 py-1 text-xs text-accent hover:bg-accent/30"
+                  (click)="verStock(w)">Ver stock</button>
+                <button type="button"
+                  class="rounded-md px-2 py-1 text-xs"
+                  [class]="w.active
+                    ? 'bg-destructive/20 text-destructive hover:bg-destructive/30'
+                    : 'bg-accent/20 text-accent hover:bg-accent/30'"
+                  (click)="toggleActive(w)">
+                  {{ w.active ? 'Inhabilitar' : 'Habilitar' }}
+                </button>
+              </div>
+            </td>
           </tr>
         }
         @if (!list.length) {
           <tr>
-            <td colspan="3" class="p-6 text-center text-muted-foreground">Sin almacenes registrados.</td>
+            <td colspan="5" class="p-6 text-center text-muted-foreground">Sin almacenes registrados.</td>
           </tr>
         }
       </tbody>

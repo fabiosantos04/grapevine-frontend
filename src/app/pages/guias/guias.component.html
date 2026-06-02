@@ -9,6 +9,7 @@
     </div>
   </app-page-header>
 
+  <!-- Modal nueva guía -->
   @if (open) {
     <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" (click.self)="open = false">
       <div class="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg border border-border bg-card p-6 shadow-lg">
@@ -111,44 +112,183 @@
     </div>
   }
 
-  <div class="overflow-hidden rounded-xl border border-border/60 bg-card">
-    <table class="w-full text-sm">
-      <thead class="bg-card-foreground/5 text-xs uppercase text-muted-foreground">
-        <tr>
-          <th class="px-4 py-3 text-left">Fecha</th>
-          <th class="px-4 py-3 text-left">Tipo</th>
-          <th class="px-4 py-3 text-left">Origen</th>
-          <th class="px-4 py-3 text-left">Destino</th>
-          <th class="px-4 py-3 text-left">Productos</th>
-          <th class="px-4 py-3 text-left">Creado por</th>
-        </tr>
-      </thead>
-      <tbody>
-        @if (!rows.length) {
-          <tr>
-            <td colspan="6" class="px-4 py-12 text-center text-muted-foreground">Sin guías registradas</td>
-          </tr>
-        } @else {
-          @for (r of rows; track r.id) {
-            <tr class="border-t border-border/40">
-              <td class="px-4 py-3 text-muted-foreground">{{ r.createdAt | date: 'dd/MM/yyyy HH:mm' }}</td>
-              <td class="px-4 py-3">
+  <!-- Modal incidencia -->
+  @if (incidentOpen) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" (click.self)="incidentOpen = false">
+      <div class="w-full max-w-md rounded-lg border border-border bg-card p-6 shadow-lg">
+        <h2 class="font-display text-lg font-semibold text-destructive">Reportar incidencia</h2>
+        <p class="mt-1 text-sm text-muted-foreground">
+          El movimiento quedará pausado. Podrás retomarlo o cancelarlo.
+        </p>
+        <div class="mt-4 space-y-3">
+          <div>
+            <label class="text-sm">Motivo de la incidencia <span class="text-destructive">*</span></label>
+            <textarea rows="3"
+              class="mt-1 w-full rounded-md border border-input px-3 py-2 text-sm"
+              [(ngModel)]="incidentForm.reason" [ngModelOptions]="{ standalone: true }"
+              placeholder="Describe qué ocurrió…"></textarea>
+          </div>
+          <div>
+            <label class="text-sm">URL de evidencia <span class="text-muted-foreground text-xs">(foto, documento)</span></label>
+            <input class="mt-1 w-full rounded-md border border-input px-3 py-2 text-sm"
+              [(ngModel)]="incidentForm.evidenceUrl" [ngModelOptions]="{ standalone: true }"
+              placeholder="https://…" />
+          </div>
+          <div class="flex items-center gap-2">
+            <input type="checkbox" id="stockRecoverable"
+              [(ngModel)]="incidentForm.stockRecoverable" [ngModelOptions]="{ standalone: true }" />
+            <label for="stockRecoverable" class="text-sm">
+              La mercadería puede recuperarse y devolverse al almacén origen
+            </label>
+          </div>
+        </div>
+        <div class="mt-6 flex justify-end gap-2">
+          <button type="button"
+            class="rounded-md border border-border px-4 py-2 text-sm"
+            (click)="incidentOpen = false">Cancelar</button>
+          <button type="button"
+            class="rounded-md bg-destructive px-4 py-2 text-sm text-white disabled:opacity-50"
+            [disabled]="incidentSaving || !incidentForm.reason"
+            (click)="submitIncident()">
+            {{ incidentSaving ? 'Guardando…' : 'Registrar incidencia' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Lista de guías -->
+  <div class="space-y-4">
+    @if (!rows.length) {
+      <div class="rounded-xl border border-border/60 bg-card p-12 text-center text-muted-foreground">
+        Sin guías registradas
+      </div>
+    } @else {
+      @for (r of rows; track r.id) {
+        <div class="rounded-xl border border-border/60 bg-card p-5"
+          [class]="r.status === 'INCIDENCIA' ? 'border-destructive/40' : ''">
+
+          <!-- Cabecera -->
+          <div class="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <div class="flex items-center gap-2">
                 <span class="rounded-full bg-accent/15 px-2 py-0.5 text-xs text-accent">
                   {{ typeLabel(r.type) }}
                 </span>
-              </td>
-              <td class="px-4 py-3">{{ r.originWarehouse }}</td>
-              <td class="px-4 py-3">{{ r.destinationWarehouse }}</td>
-              <td class="px-4 py-3 text-muted-foreground">
-                @for (it of r.items; track it.productName) {
-                  <div>{{ it.productName }} × {{ it.quantity }}</div>
-                }
-              </td>
-              <td class="px-4 py-3 font-medium">{{ r.createdBy }}</td>
-            </tr>
+                <span class="rounded-full px-2 py-0.5 text-xs" [class]="statusColor(r.status)">
+                  {{ statusLabel(r.status) }}
+                </span>
+                <span class="text-xs text-muted-foreground">#{{ r.id }}</span>
+              </div>
+              <p class="mt-1 text-sm">
+                <span class="font-medium">{{ r.originWarehouse }}</span>
+                <span class="mx-2 text-muted-foreground">→</span>
+                <span class="font-medium">{{ r.destinationWarehouse }}</span>
+              </p>
+              @if (r.description) {
+                <p class="text-xs text-muted-foreground">{{ r.description }}</p>
+              }
+            </div>
+            <div class="text-right text-xs text-muted-foreground">
+              <p>Creado por {{ r.createdBy }}</p>
+              <p>{{ r.createdAt | date: 'dd/MM/yyyy HH:mm' }}</p>
+            </div>
+          </div>
+
+          <!-- Timeline -->
+          @if (r.status !== 'CANCELADO') {
+            <div class="mt-4 flex items-center gap-0">
+              @for (step of TIMELINE_STEPS; track step; let last = $last) {
+                <div class="flex items-center" [class]="last ? '' : 'flex-1'">
+                  <div class="flex flex-col items-center">
+                    <div class="flex h-8 w-8 items-center justify-center rounded-full border-2 text-xs font-bold transition-colors"
+                      [class]="isStepDone(r, step)
+                        ? (r.status === 'INCIDENCIA' && step === 'EN_TRANSITO' ? 'border-destructive bg-destructive/20 text-destructive' : 'border-accent bg-accent text-primary-foreground')
+                        : 'border-border bg-card text-muted-foreground'">
+                      @if (isStepDone(r, step) && r.status !== 'INCIDENCIA') { ✓ }
+                      @else if (r.status === 'INCIDENCIA' && step === 'EN_TRANSITO') { ! }
+                      @else { {{ $index + 1 }} }
+                    </div>
+                    <span class="mt-1 text-center text-xs"
+                      [class]="isStepDone(r, step) ? 'text-accent' : 'text-muted-foreground'">
+                      {{ statusLabel(step) }}
+                    </span>
+                  </div>
+                  @if (!last) {
+                    <div class="mx-1 h-0.5 flex-1 transition-colors"
+                      [class]="isStepDone(r, step) && r.status !== 'INCIDENCIA'
+                        ? 'bg-accent'
+                        : 'bg-border'">
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          } @else {
+            <div class="mt-3 rounded-lg border border-border/60 bg-muted/30 px-4 py-2 text-xs text-muted-foreground">
+              Movimiento cancelado
+              @if (r.incidentReason) { — {{ r.incidentReason }} }
+              @if (r.stockRecoverable === false) {
+                <span class="ml-1 text-destructive">(stock no recuperado)</span>
+              }
+            </div>
           }
-        }
-      </tbody>
-    </table>
+
+          <!-- Incidencia activa -->
+          @if (r.status === 'INCIDENCIA') {
+            <div class="mt-3 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm">
+              <p class="font-semibold text-destructive">⚠ Incidencia activa</p>
+              <p class="mt-1 text-muted-foreground">{{ r.incidentReason }}</p>
+              @if (r.stockRecoverable !== null) {
+                <p class="mt-1 text-xs text-muted-foreground">
+                  Stock recuperable: <span [class]="r.stockRecoverable ? 'text-accent' : 'text-destructive'">
+                    {{ r.stockRecoverable ? 'Sí' : 'No' }}
+                  </span>
+                </p>
+              }
+            </div>
+          }
+
+          <!-- Productos -->
+          <div class="mt-3 flex flex-wrap gap-1">
+            @for (it of r.items; track it.productName) {
+              <span class="rounded-full border border-border/60 bg-muted/30 px-2 py-0.5 text-xs">
+                {{ it.productName }} × {{ it.quantity }}
+              </span>
+            }
+          </div>
+
+          <!-- Botones de acción -->
+          <div class="mt-4 flex flex-wrap gap-2">
+            @if (r.status === 'BORRADOR') {
+              <button type="button"
+                class="rounded-md bg-yellow-500/20 px-3 py-1.5 text-xs text-yellow-600 hover:bg-yellow-500/30"
+                (click)="advance(r.id, 'prepare')">Iniciar preparación</button>
+            }
+            @if (r.status === 'PREPARANDO') {
+              <button type="button"
+                class="rounded-md bg-blue-500/20 px-3 py-1.5 text-xs text-blue-400 hover:bg-blue-500/30"
+                (click)="advance(r.id, 'dispatch')">Despachar (salió del almacén)</button>
+            }
+            @if (r.status === 'EN_TRANSITO') {
+              <button type="button"
+                class="rounded-md bg-accent/20 px-3 py-1.5 text-xs text-accent hover:bg-accent/30"
+                (click)="advance(r.id, 'deliver')">Marcar como entregado</button>
+              <button type="button"
+                class="rounded-md bg-destructive/20 px-3 py-1.5 text-xs text-destructive hover:bg-destructive/30"
+                (click)="openIncident(r)">Reportar incidencia</button>
+            }
+            @if (r.status === 'INCIDENCIA') {
+              <button type="button"
+                class="rounded-md bg-blue-500/20 px-3 py-1.5 text-xs text-blue-400 hover:bg-blue-500/30"
+                (click)="advance(r.id, 'resume')">Retomar movimiento</button>
+              <button type="button"
+                class="rounded-md bg-destructive/20 px-3 py-1.5 text-xs text-destructive hover:bg-destructive/30"
+                (click)="advance(r.id, 'cancel')">Cancelar definitivamente</button>
+            }
+          </div>
+        </div>
+      }
+    }
   </div>
 </div>
