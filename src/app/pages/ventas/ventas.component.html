@@ -1,5 +1,5 @@
 <div>
-  <app-page-header title="Ventas" description="Registro de órdenes de venta." />
+  <app-page-header title="Ventas" description="Registro de órdenes de venta por almacén." />
   <div class="mb-4 flex justify-end">
     <button type="button"
       class="inline-flex items-center rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground hover:bg-primary/90"
@@ -8,38 +8,122 @@
     </button>
   </div>
 
+  <div class="mb-4 flex flex-wrap items-center gap-3">
+    <input
+      class="flex-1 min-w-[200px] rounded-md border border-input bg-background px-3 py-2 text-sm"
+      placeholder="Buscar por cliente o documento…"
+      [(ngModel)]="search" [ngModelOptions]="{ standalone: true }" />
+
+    <select class="rounded-md border border-input bg-background px-3 py-2 text-sm"
+      [(ngModel)]="filterStatus" [ngModelOptions]="{ standalone: true }">
+      <option value="">Todos los estados</option>
+      <option value="PAID">Pagado</option>
+      <option value="PENDING">Pendiente</option>
+      <option value="CANCELLED">Cancelado</option>
+    </select>
+
+    <select class="rounded-md border border-input bg-background px-3 py-2 text-sm"
+      [(ngModel)]="filterWarehouse" [ngModelOptions]="{ standalone: true }">
+      <option value="">Todos los almacenes</option>
+      @for (w of warehouses; track w.id) {
+        <option [value]="w.id">{{ w.name }}</option>
+      }
+    </select>
+
+    <div class="flex items-center gap-1 text-sm">
+      <label class="text-muted-foreground">Desde</label>
+      <input type="date" class="rounded-md border border-input bg-background px-2 py-2"
+        [(ngModel)]="filterFrom" [ngModelOptions]="{ standalone: true }" />
+      <label class="text-muted-foreground">Hasta</label>
+      <input type="date" class="rounded-md border border-input bg-background px-2 py-2"
+        [(ngModel)]="filterTo" [ngModelOptions]="{ standalone: true }" />
+    </div>
+  </div>
+
   @if (open) {
     <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" (click.self)="open = false">
       <div class="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg border border-border bg-card p-6 shadow-lg">
         <h2 class="font-display text-lg font-semibold">Nueva venta</h2>
         <div class="mt-4 space-y-3">
-          <div class="grid grid-cols-2 gap-3">
-            <div>
-              <label class="text-sm">Nombre del cliente</label>
-              <input class="mt-1 w-full rounded-md border border-input px-3 py-2 text-sm"
-                [(ngModel)]="form.customerName" [ngModelOptions]="{ standalone: true }" />
-            </div>
-            <div>
-              <label class="text-sm">Documento</label>
-              <input class="mt-1 w-full rounded-md border border-input px-3 py-2 text-sm"
-                [(ngModel)]="form.customerDocument" [ngModelOptions]="{ standalone: true }" />
-            </div>
+
+          <div class="flex items-center gap-2 rounded-md border border-border/60 bg-muted/20 px-3 py-2">
+            <input type="checkbox" id="clienteRegistrado"
+              [(ngModel)]="clienteRegistrado" [ngModelOptions]="{ standalone: true }"
+              (ngModelChange)="onClienteModeChange()" />
+            <label for="clienteRegistrado" class="text-sm">
+              Cliente registrado
+              <span class="text-xs text-muted-foreground">(desmarcar para venta a público general)</span>
+            </label>
           </div>
-          <div class="border-t border-border/60 pt-3">
-            <label class="text-sm">Agregar producto</label>
-            <div class="mt-1 flex gap-2">
-              <select class="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm"
-                [(ngModel)]="selectedProductId" [ngModelOptions]="{ standalone: true }">
-                <option value="">Selecciona producto</option>
-                @for (p of products; track p.id) {
-                  <option [value]="p.id">{{ p.name }} — S/ {{ p.price | number: '1.2-2' }} (stock: {{ p.stock }})</option>
+
+          @if (clienteRegistrado) {
+            <div>
+              <label class="text-sm">Cliente <span class="text-destructive">*</span></label>
+              <select class="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                [(ngModel)]="selectedCustomerId" [ngModelOptions]="{ standalone: true }"
+                (ngModelChange)="onCustomerSelect()">
+                <option value="">Selecciona un cliente</option>
+                @for (c of customers; track c.id) {
+                  <option [value]="c.id">{{ c.razonSocial }} — {{ c.tipoDocumento }}: {{ c.documento }}</option>
                 }
               </select>
-              <button type="button"
-                class="rounded-md border border-border px-3 py-2 text-sm hover:bg-muted/40"
-                (click)="addItem()">Agregar</button>
+              @if (selectedCustomerId) {
+                <p class="mt-1 text-xs text-muted-foreground">
+                  {{ form.customerName }} · {{ form.customerDocument }}
+                </p>
+              }
             </div>
+          } @else {
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="text-sm">Nombre del cliente <span class="text-destructive">*</span></label>
+                <input class="mt-1 w-full rounded-md border border-input px-3 py-2 text-sm"
+                  [(ngModel)]="form.customerName" [ngModelOptions]="{ standalone: true }"
+                  placeholder="Público general" />
+              </div>
+              <div>
+                <label class="text-sm">Documento</label>
+                <input class="mt-1 w-full rounded-md border border-input px-3 py-2 text-sm"
+                  [(ngModel)]="form.customerDocument" [ngModelOptions]="{ standalone: true }" />
+              </div>
+            </div>
+          }
+
+          <div>
+            <label class="text-sm">Almacén de venta <span class="text-destructive">*</span></label>
+            <select class="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              [(ngModel)]="form.warehouseId" [ngModelOptions]="{ standalone: true }"
+              (ngModelChange)="onWarehouseChange()">
+              <option value="">Selecciona almacén</option>
+              @for (w of warehouses; track w.id) {
+                <option [value]="w.id">{{ w.name }}</option>
+              }
+            </select>
           </div>
+
+          @if (form.warehouseId) {
+            <div class="border-t border-border/60 pt-3">
+              <label class="text-sm">Agregar producto (stock del almacén seleccionado)</label>
+              <div class="mt-1 flex gap-2">
+                <select class="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  [(ngModel)]="selectedProductId" [ngModelOptions]="{ standalone: true }">
+                  <option value="">Selecciona producto</option>
+                  @for (s of stockInWarehouse; track s.productId) {
+                    <option [value]="s.productId" [disabled]="s.stock <= 0">
+                      {{ s.productName }} (stock: {{ s.stock }})
+                    </option>
+                  }
+                </select>
+                <button type="button"
+                  class="rounded-md border border-border px-3 py-2 text-sm hover:bg-muted/40"
+                  (click)="addItem()">Agregar</button>
+              </div>
+              @if (!stockInWarehouse.length) {
+                <p class="mt-1 text-xs text-muted-foreground">Este almacén no tiene productos con stock.</p>
+              }
+            </div>
+          }
+
           @if (items.length) {
             <table class="mt-2 w-full text-sm">
               <thead class="text-xs text-muted-foreground">
@@ -56,7 +140,7 @@
                   <tr class="border-t border-border/40">
                     <td class="py-2">{{ it.productName }}</td>
                     <td class="text-center">
-                      <input type="number" min="1"
+                      <input type="number" min="1" [max]="stockOf(it.productId)"
                         class="mx-auto w-16 rounded border border-input px-1 py-1 text-center"
                         [(ngModel)]="it.quantity" [ngModelOptions]="{ standalone: true }" />
                     </td>
@@ -84,9 +168,38 @@
             (click)="open = false">Cancelar</button>
           <button type="button"
             class="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-50"
-            [disabled]="saving || !form.customerName || !items.length"
+            [disabled]="!canSubmit()"
             (click)="submit()">
             {{ saving ? 'Guardando…' : 'Registrar venta' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  @if (cancelOpen) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" (click.self)="cancelOpen = false">
+      <div class="w-full max-w-md rounded-lg border border-border bg-card p-6 shadow-lg">
+        <h2 class="font-display text-lg font-semibold text-destructive">Anular venta #{{ cancelOrder?.id }}</h2>
+        <p class="mt-1 text-sm text-muted-foreground">
+          Esta acción devolverá el stock al almacén de origen. La venta quedará marcada como anulada y no se puede revertir.
+        </p>
+        <div class="mt-4">
+          <label class="text-sm">Motivo de la anulación <span class="text-destructive">*</span></label>
+          <textarea rows="3"
+            class="mt-1 w-full rounded-md border border-input px-3 py-2 text-sm"
+            [(ngModel)]="cancelReason" [ngModelOptions]="{ standalone: true }"
+            placeholder="Ej: Error en el registro, devolución del cliente, producto equivocado…"></textarea>
+        </div>
+        <div class="mt-6 flex justify-end gap-2">
+          <button type="button"
+            class="rounded-md border border-border px-4 py-2 text-sm"
+            (click)="cancelOpen = false">Cancelar</button>
+          <button type="button"
+            class="rounded-md bg-destructive px-4 py-2 text-sm text-white disabled:opacity-50"
+            [disabled]="cancelSaving || !cancelReason.trim()"
+            (click)="confirmCancel()">
+            {{ cancelSaving ? 'Anulando…' : 'Anular venta' }}
           </button>
         </div>
       </div>
@@ -100,31 +213,57 @@
           <th class="px-4 py-3 text-left">Fecha</th>
           <th class="px-4 py-3 text-left">Cliente</th>
           <th class="px-4 py-3 text-left">Documento</th>
+          <th class="px-4 py-3 text-left">Almacén</th>
           <th class="px-4 py-3 text-right">Total</th>
           <th class="px-4 py-3 text-left">Estado</th>
+          <th class="px-4 py-3 text-left">Acciones</th>
         </tr>
       </thead>
       <tbody>
-        @if (!rows.length) {
+        @if (!filtered.length) {
           <tr>
-            <td colspan="5" class="px-4 py-12 text-center text-muted-foreground">Sin ventas registradas</td>
+            <td colspan="7" class="px-4 py-12 text-center text-muted-foreground">
+              {{ rows.length ? 'Sin resultados para los filtros aplicados.' : 'Sin ventas registradas.' }}
+            </td>
           </tr>
         } @else {
-          @for (r of rows; track r.id) {
+          @for (r of filtered; track r.id) {
             <tr class="border-t border-border/40">
               <td class="px-4 py-3">{{ r.createdAt | date: 'dd/MM/yyyy HH:mm' }}</td>
               <td class="px-4 py-3">{{ r.customerName }}</td>
               <td class="px-4 py-3 text-muted-foreground">{{ r.customerDocument || '—' }}</td>
+              <td class="px-4 py-3 text-muted-foreground">{{ r.warehouseName }}</td>
               <td class="px-4 py-3 text-right font-mono">S/ {{ r.total | number: '1.2-2' }}</td>
               <td class="px-4 py-3">
                 <span class="rounded-full px-2 py-0.5 text-xs"
                   [class]="{
-                    'bg-accent/20 text-accent':             r.status === 'PAID',
-                    'bg-yellow-500/20 text-yellow-600':     r.status === 'PENDING',
-                    'bg-destructive/20 text-destructive':   r.status === 'CANCELLED'
+                    'bg-accent/20 text-accent':           r.status === 'PAID',
+                    'bg-yellow-500/20 text-yellow-600':   r.status === 'PENDING',
+                    'bg-destructive/20 text-destructive': r.status === 'CANCELLED'
                   }">
                   {{ r.status }}
                 </span>
+              </td>
+              <td class="px-4 py-3">
+                <div class="flex flex-wrap items-center gap-1">
+                  <button type="button"
+                    class="rounded-md bg-accent/20 px-2 py-1 text-xs text-accent hover:bg-accent/30"
+                    (click)="generarComprobante(r)">
+                    ↓ PDF
+                  </button>
+                  @if (r.status === 'PAID') {
+                    <button type="button"
+                      class="rounded-md bg-destructive/20 px-2 py-1 text-xs text-destructive hover:bg-destructive/30"
+                      (click)="openCancel(r)">
+                      Anular
+                    </button>
+                  }
+                  @if (r.status === 'CANCELLED' && r.cancelReason) {
+                    <span class="text-xs text-muted-foreground" [title]="r.cancelReason">
+                      ⓘ Anulada
+                    </span>
+                  }
+                </div>
               </td>
             </tr>
           }
