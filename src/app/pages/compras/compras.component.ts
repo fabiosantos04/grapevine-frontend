@@ -5,6 +5,7 @@ import { Router } from '@angular/router';
 import { ApiService } from '../../core/api.service';
 import { PageHeaderComponent } from '../../layout/page-header.component';
 import { ToastService } from '../../core/toast.service';
+import { LoadingSpinnerComponent } from '../../shared/loading-spinner/loading-spinner.component';
 
 type PurchaseStatus = 'DRAFT' | 'SENT' | 'CONFIRMED' | 'RECEIVED' | 'PAID' | 'CANCELLED';
 type Supplier       = { id: number; name: string };
@@ -45,7 +46,7 @@ const STATUS_COLORS: Record<PurchaseStatus, string> = {
 @Component({
   selector: 'app-compras',
   standalone: true,
-  imports: [CommonModule, FormsModule, PageHeaderComponent],
+  imports: [CommonModule, FormsModule, PageHeaderComponent, LoadingSpinnerComponent],
   templateUrl: './compras.component.html',
   styleUrl: './compras.component.css',
 })
@@ -53,6 +54,7 @@ export class ComprasComponent implements OnInit {
   private readonly api    = inject(ApiService);
   private readonly router = inject(Router);
   private readonly toast  = inject(ToastService);
+  loading = true;
 
   rows: PurchaseResponse[]    = [];
   suppliers: Supplier[]       = [];
@@ -80,27 +82,31 @@ export class ComprasComponent implements OnInit {
   }));
 
   async ngOnInit(): Promise<void> {
-    await Promise.all([
-      this.loadSuppliers(),
-      this.loadProducts(),
-      this.loadPurchases(),
-      this.loadBankAccounts(),
-    ]);
+    try {
+      await Promise.all([
+        this.loadSuppliers(),
+        this.loadProducts(),
+        this.loadPurchases(),
+        this.loadBankAccounts(),
+      ]);
 
-    const prefill = history.state?.prefill;
-    if (prefill) {
-      const product = this.products.find(p => p.name === prefill.productName);
-      if (product) {
-        this.items = [{
-          productId:   product.id,
-          productName: product.name,
-          quantity:    prefill.quantity,
-          price:       product.price,
-        }];
-        this.prefillRequestId = prefill.requestId ?? null;
-        this.open = true;
-        this.toast.success(`Prellenado con: ${prefill.productName} × ${prefill.quantity}`);
+      const prefill = history.state?.prefill;
+      if (prefill) {
+        const product = this.products.find(p => p.name === prefill.productName);
+        if (product) {
+          this.items = [{
+            productId:   product.id,
+            productName: product.name,
+            quantity:    prefill.quantity,
+            price:       product.price,
+          }];
+          this.prefillRequestId = prefill.requestId ?? null;
+          this.open = true;
+          this.toast.success(`Prellenado con: ${prefill.productName} × ${prefill.quantity}`);
+        }
       }
+    } finally {
+      this.loading = false;
     }
   }
 

@@ -6,6 +6,7 @@ import { ApiService } from '../../core/api.service';
 import { AuthService } from '../../core/auth.service';
 import { PageHeaderComponent } from '../../layout/page-header.component';
 import { ToastService } from '../../core/toast.service';
+import { LoadingSpinnerComponent } from '../../shared/loading-spinner/loading-spinner.component';
 
 type RequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 
@@ -25,7 +26,7 @@ type Product = { id: number; name: string; stock: number };
 @Component({
   selector: 'app-solicitudes',
   standalone: true,
-  imports: [CommonModule, FormsModule, PageHeaderComponent],
+  imports: [CommonModule, FormsModule, PageHeaderComponent, LoadingSpinnerComponent],
   templateUrl: './solicitudes.component.html',
   styleUrl: './solicitudes.component.css',
 })
@@ -34,6 +35,7 @@ export class SolicitudesComponent implements OnInit {
   private readonly auth   = inject(AuthService);
   private readonly router = inject(Router);
   private readonly toast  = inject(ToastService);
+  loading = true;
 
   rows: PurchaseRequest[] = [];
   products: Product[]     = [];
@@ -47,6 +49,7 @@ export class SolicitudesComponent implements OnInit {
 
   async ngOnInit(): Promise<void> {
     await Promise.all([this.load(), this.loadProducts()]);
+    this.loading = false;
   }
 
   async load(): Promise<void> {

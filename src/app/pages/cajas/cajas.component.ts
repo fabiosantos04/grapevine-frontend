@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/api.service';
 import { PageHeaderComponent } from '../../layout/page-header.component';
 import { ToastService } from '../../core/toast.service';
+import { LoadingSpinnerComponent } from '../../shared/loading-spinner/loading-spinner.component';
 
 type BankAccount = { id: number; bank: string; accountNumber: string; balance: number; currency: string };
 
@@ -29,13 +30,14 @@ type CashRegister = {
 @Component({
   selector: 'app-cajas',
   standalone: true,
-  imports: [CommonModule, FormsModule, PageHeaderComponent],
+  imports: [CommonModule, FormsModule, PageHeaderComponent, LoadingSpinnerComponent],
   templateUrl: './cajas.component.html',
   styleUrl: './cajas.component.css',
 })
 export class CajasComponent implements OnInit {
   private readonly api   = inject(ApiService);
   private readonly toast = inject(ToastService);
+  loading = true;
 
   caja: CashRegister | null = null;
   bankAccounts: BankAccount[] = [];
@@ -46,6 +48,7 @@ export class CajasComponent implements OnInit {
 
   async ngOnInit(): Promise<void> {
     await Promise.all([this.load(), this.loadBankAccounts()]);
+    this.loading = false;
   }
 
   async load(): Promise<void> {

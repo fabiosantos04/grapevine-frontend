@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/api.service';
 import { PageHeaderComponent } from '../../layout/page-header.component';
 import { ToastService } from '../../core/toast.service';
+import { LoadingSpinnerComponent } from '../../shared/loading-spinner/loading-spinner.component';
 
 type Product = {
   id: number;
@@ -29,7 +30,7 @@ const CATEGORIES = [
 @Component({
   selector: 'app-productos',
   standalone: true,
-  imports: [CommonModule, FormsModule, PageHeaderComponent],
+  imports: [CommonModule, FormsModule, PageHeaderComponent, LoadingSpinnerComponent],
   templateUrl: './productos.component.html',
   styleUrl: './productos.component.css',
 })
@@ -37,6 +38,7 @@ export class ProductosComponent implements OnInit {
   readonly CATEGORIES    = CATEGORIES;
   private readonly api   = inject(ApiService);
   private readonly toast = inject(ToastService);
+  loading = true;
 
   list: Product[] = [];
   open   = false;
@@ -49,6 +51,7 @@ export class ProductosComponent implements OnInit {
 
   async ngOnInit(): Promise<void> {
     await this.load();
+    this.loading = false;
   }
 
   async load(): Promise<void> {

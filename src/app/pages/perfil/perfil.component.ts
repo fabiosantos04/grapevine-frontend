@@ -5,6 +5,7 @@ import { AuthService } from '../../core/auth.service';
 import { ApiService } from '../../core/api.service';
 import { PageHeaderComponent } from '../../layout/page-header.component';
 import { ToastService } from '../../core/toast.service';
+import { LoadingSpinnerComponent } from '../../shared/loading-spinner/loading-spinner.component';
 
 type ProfileResponse = {
   id: number;
@@ -19,7 +20,7 @@ type ProfileResponse = {
 @Component({
   selector: 'app-perfil',
   standalone: true,
-  imports: [CommonModule, FormsModule, PageHeaderComponent],
+  imports: [CommonModule, FormsModule, PageHeaderComponent, LoadingSpinnerComponent],
   templateUrl: './perfil.component.html',
   styleUrl: './perfil.component.css',
 })
@@ -27,6 +28,7 @@ export class PerfilComponent implements OnInit {
   readonly auth          = inject(AuthService);
   private readonly api   = inject(ApiService);
   private readonly toast = inject(ToastService);
+  loading = true;
 
   fullName        = '';
   avatar: string | null = null;
@@ -46,6 +48,8 @@ export class PerfilComponent implements OnInit {
       this.avatar    = profile.avatar ?? null;
     } catch {
       this.fullName = this.auth.user()?.fullName ?? '';
+    } finally {
+      this.loading = false;
     }
   }
 

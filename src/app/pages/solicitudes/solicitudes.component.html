@@ -1,3 +1,6 @@
+@if (loading) {
+  <app-loading-spinner message="Cargando solicitudes…" />
+} @else {
 <div>
   <app-page-header title="Solicitudes de compra" description="Detección de stock bajo y solicitudes de reposición.">
     <div slot="actions">
@@ -121,3 +124,4 @@
     </table>
   </div>
 </div>
+}

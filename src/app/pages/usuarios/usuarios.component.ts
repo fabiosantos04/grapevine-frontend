@@ -6,6 +6,7 @@ import { AuthService } from '../../core/auth.service';
 import { ApiService } from '../../core/api.service';
 import { PageHeaderComponent } from '../../layout/page-header.component';
 import { ToastService } from '../../core/toast.service';
+import { LoadingSpinnerComponent } from '../../shared/loading-spinner/loading-spinner.component';
 
 type UserResponse = {
   id: number;
@@ -22,7 +23,7 @@ type Role = typeof ROLES[number];
 @Component({
   selector: 'app-usuarios',
   standalone: true,
-  imports: [CommonModule, FormsModule, PageHeaderComponent],
+  imports: [CommonModule, FormsModule, PageHeaderComponent, LoadingSpinnerComponent],
   templateUrl: './usuarios.component.html',
   styleUrl: './usuarios.component.css',
 })
@@ -32,6 +33,7 @@ export class UsuariosComponent implements OnInit {
   private readonly auth  = inject(AuthService);
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
+  loading = true;
 
   list: UserResponse[] = [];
   open      = false;
@@ -48,6 +50,7 @@ export class UsuariosComponent implements OnInit {
       return;
     }
     await this.load();
+    this.loading = false;
   }
 
   async load(): Promise<void> {

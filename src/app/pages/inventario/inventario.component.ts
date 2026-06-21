@@ -5,6 +5,7 @@ import { ActivatedRoute } from '@angular/router';
 import { ApiService } from '../../core/api.service';
 import { PageHeaderComponent } from '../../layout/page-header.component';
 import { ToastService } from '../../core/toast.service';
+import { LoadingSpinnerComponent } from '../../shared/loading-spinner/loading-spinner.component';
 
 type AdjustmentRow = {
   id: number;
@@ -32,7 +33,7 @@ type Product   = { id: number; name: string; stock: number };
 @Component({
   selector: 'app-inventario',
   standalone: true,
-  imports: [CommonModule, FormsModule, PageHeaderComponent],
+  imports: [CommonModule, FormsModule, PageHeaderComponent, LoadingSpinnerComponent],
   templateUrl: './inventario.component.html',
   styleUrl: './inventario.component.css',
 })
@@ -40,6 +41,7 @@ export class InventarioComponent implements OnInit {
   private readonly api   = inject(ApiService);
   private readonly toast = inject(ToastService);
   private readonly route = inject(ActivatedRoute);
+  loading = true;
 
   rows: AdjustmentRow[]     = [];
   stockRows: WarehouseStock[] = [];
@@ -65,8 +67,8 @@ export class InventarioComponent implements OnInit {
       this.loadStock(),
       this.loadAdjustments(),
     ]);
+    this.loading = false;
 
-    // Leer ?almacen=ID desde la URL (viene de almacenes → Ver stock)
     this.route.queryParams.subscribe(params => {
       if (params['almacen']) {
         this.filterWarehouseId = Number(params['almacen']);

@@ -1,3 +1,6 @@
+@if (loading) {
+  <app-loading-spinner message="Cargando perfil…" />
+} @else {
 <div>
   <app-page-header title="Mi perfil" description="Gestiona tu información personal." />
 
@@ -91,3 +94,4 @@
     </div>
   </div>
 </div>
+}

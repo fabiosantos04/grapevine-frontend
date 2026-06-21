@@ -1,3 +1,6 @@
+@if (loading) {
+  <app-loading-spinner message="Cargando clientes…" />
+} @else {
 <div>
   <app-page-header title="Clientes" description="Cartera de clientes y su historial de compras.">
     <div slot="actions">
@@ -210,3 +213,4 @@
     </table>
   </div>
 </div>
+}

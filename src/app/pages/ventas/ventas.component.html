@@ -1,3 +1,6 @@
+@if (loading) {
+  <app-loading-spinner message="Cargando ventas…" />
+} @else {
 <div>
   <app-page-header title="Ventas" description="Registro de órdenes de venta por almacén." />
   <div class="mb-4 flex justify-end">
@@ -272,3 +275,4 @@
     </table>
   </div>
 </div>
+}

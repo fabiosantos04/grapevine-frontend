@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject, ElementRef, ViewChild } from '@angular/core';
 import { PageHeaderComponent } from '../../layout/page-header.component';
 import { ApiService } from '../../core/api.service';
+import { LoadingSpinnerComponent } from '../../shared/loading-spinner/loading-spinner.component';
 
 type MonthlyDataPoint = { month: string; sales: number; purchases: number };
 
@@ -20,7 +21,7 @@ type FullReport = {
 @Component({
   selector: 'app-reportes',
   standalone: true,
-  imports: [CommonModule, PageHeaderComponent],
+  imports: [CommonModule, PageHeaderComponent, LoadingSpinnerComponent],
   templateUrl: './reportes.component.html',
   styleUrl: './reportes.component.css',
 })
@@ -29,6 +30,7 @@ export class ReportesComponent implements OnInit {
   @ViewChild('lineChart') lineChartRef!: ElementRef<HTMLCanvasElement>;
 
   private readonly api = inject(ApiService);
+  loading = true;
 
   report: FullReport | null = null;
   cards: { label: string; value: number; money?: boolean }[] = [];
@@ -47,7 +49,9 @@ export class ReportesComponent implements OnInit {
         { label: 'Cajas registradas',     value: this.report.openedRegisters },
       ];
       setTimeout(() => this.renderCharts(), 100);
-    } catch {}
+    } catch {} finally {
+      this.loading = false;
+    }
   }
 
   private renderCharts(): void {

@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/api.service';
 import { PageHeaderComponent } from '../../layout/page-header.component';
 import { ToastService } from '../../core/toast.service';
+import { LoadingSpinnerComponent } from '../../shared/loading-spinner/loading-spinner.component';
 
 type Supplier = {
   id: number;
@@ -17,13 +18,14 @@ type Supplier = {
 @Component({
   selector: 'app-proveedores',
   standalone: true,
-  imports: [CommonModule, FormsModule, PageHeaderComponent],
+  imports: [CommonModule, FormsModule, PageHeaderComponent, LoadingSpinnerComponent],
   templateUrl: './proveedores.component.html',
   styleUrl: './proveedores.component.css',
 })
 export class ProveedoresComponent implements OnInit {
   private readonly api   = inject(ApiService);
   private readonly toast = inject(ToastService);
+  loading = true;
 
   list: Supplier[] = [];
   open   = false;
@@ -32,6 +34,7 @@ export class ProveedoresComponent implements OnInit {
 
   async ngOnInit(): Promise<void> {
     await this.load();
+    this.loading = false;
   }
 
   async load(): Promise<void> {

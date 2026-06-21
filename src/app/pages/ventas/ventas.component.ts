@@ -6,6 +6,7 @@ import { PageHeaderComponent } from '../../layout/page-header.component';
 import { ToastService } from '../../core/toast.service';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { LoadingSpinnerComponent } from '../../shared/loading-spinner/loading-spinner.component';
 
 type Product   = { id: number; name: string; price: number; stock: number };
 type Warehouse = { id: number; name: string; active: boolean };
@@ -42,13 +43,14 @@ type OrderResponse = {
 @Component({
   selector: 'app-ventas',
   standalone: true,
-  imports: [CommonModule, FormsModule, PageHeaderComponent],
+  imports: [CommonModule, FormsModule, PageHeaderComponent, LoadingSpinnerComponent],
   templateUrl: './ventas.component.html',
   styleUrl: './ventas.component.css',
 })
 export class VentasComponent implements OnInit {
   private readonly api   = inject(ApiService);
   private readonly toast = inject(ToastService);
+  loading = true;
 
   rows: OrderResponse[]       = [];
   warehouses: Warehouse[]     = [];
@@ -77,6 +79,7 @@ export class VentasComponent implements OnInit {
 
   async ngOnInit(): Promise<void> {
     await Promise.all([this.loadOrders(), this.loadWarehouses(), this.loadCustomers()]);
+    this.loading = false;
   }
 
   async loadOrders(): Promise<void> {

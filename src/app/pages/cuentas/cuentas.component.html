@@ -1,3 +1,6 @@
+@if (loading) {
+  <app-loading-spinner message="Cargando cuentas…" />
+} @else {
 <div>
   <app-page-header title="Cuentas bancarias" description="Gestión de cuentas de ahorro y corriente.">
     <div slot="actions">
@@ -115,3 +118,4 @@
     </table>
   </div>
 </div>
+}

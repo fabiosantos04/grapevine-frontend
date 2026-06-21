@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/api.service';
 import { PageHeaderComponent } from '../../layout/page-header.component';
 import { ToastService } from '../../core/toast.service';
+import { LoadingSpinnerComponent } from '../../shared/loading-spinner/loading-spinner.component';
 
 type TransferType   = 'COMPRA' | 'VENTA' | 'TRASLADO' | 'IMPORTACION';
 type GuideStatus    = 'BORRADOR' | 'PREPARANDO' | 'EN_TRANSITO' | 'ENTREGADO' | 'INCIDENCIA' | 'CANCELADO';
@@ -56,13 +57,14 @@ const TIMELINE_STEPS: GuideStatus[] = ['BORRADOR', 'PREPARANDO', 'EN_TRANSITO', 
 @Component({
   selector: 'app-guias',
   standalone: true,
-  imports: [CommonModule, FormsModule, PageHeaderComponent],
+  imports: [CommonModule, FormsModule, PageHeaderComponent, LoadingSpinnerComponent],
   templateUrl: './guias.component.html',
   styleUrl: './guias.component.css',
 })
 export class GuiasComponent implements OnInit {
   private readonly api   = inject(ApiService);
   private readonly toast = inject(ToastService);
+  loading = true;
 
   rows: TransferGuideResponse[] = [];
   warehouses: Warehouse[]       = [];
@@ -73,10 +75,8 @@ export class GuiasComponent implements OnInit {
   saving            = false;
   selectedProductId = '';
 
-  // Modal de detalle/timeline
   selectedGuide: TransferGuideResponse | null = null;
 
-  // Modal de incidencia
   incidentOpen      = false;
   incidentSaving    = false;
   incidentForm      = { reason: '', evidenceUrl: '', stockRecoverable: true };
@@ -92,6 +92,7 @@ export class GuiasComponent implements OnInit {
 
   async ngOnInit(): Promise<void> {
     await Promise.all([this.load(), this.loadWarehouses(), this.loadProducts()]);
+    this.loading = false;
   }
 
   async load(): Promise<void> {

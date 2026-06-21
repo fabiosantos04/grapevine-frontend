@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject } from '@angular/core';
 import { PageHeaderComponent } from '../../layout/page-header.component';
 import { ApiService } from '../../core/api.service';
+import { LoadingSpinnerComponent } from '../../shared/loading-spinner/loading-spinner.component';
 
 type DashboardResponse = {
   totalProducts: number;
@@ -15,12 +16,13 @@ type DashboardResponse = {
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, PageHeaderComponent],
+  imports: [CommonModule, PageHeaderComponent, LoadingSpinnerComponent],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.css',
 })
 export class DashboardComponent implements OnInit {
   private readonly api = inject(ApiService);
+  loading = true;
 
   s: DashboardResponse = {
     totalProducts: 0,
@@ -43,6 +45,8 @@ export class DashboardComponent implements OnInit {
   async ngOnInit(): Promise<void> {
     try {
       this.s = await this.api.get<DashboardResponse>('/dashboard');
-    } catch {}
+    } catch {} finally {
+      this.loading = false;
+    }
   }
 }

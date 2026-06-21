@@ -1,3 +1,6 @@
+@if (loading) {
+  <app-loading-spinner message="Cargando movimientos…" />
+} @else {
 <div>
   <app-page-header title="Movimientos de caja" description="Historial de ingresos y egresos. Los egresos con comprobante requieren aprobación." />
 
@@ -162,3 +165,4 @@
     </div>
   }
 </div>
+}

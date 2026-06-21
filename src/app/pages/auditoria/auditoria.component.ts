@@ -3,6 +3,7 @@ import { Component, OnInit, inject } from '@angular/core';
 import { AuthService } from '../../core/auth.service';
 import { ApiService } from '../../core/api.service';
 import { PageHeaderComponent } from '../../layout/page-header.component';
+import { LoadingSpinnerComponent } from '../../shared/loading-spinner/loading-spinner.component';
 
 type AuditEntry = {
   date: string;
@@ -32,13 +33,14 @@ type AdjustmentRow = {
 @Component({
   selector: 'app-auditoria',
   standalone: true,
-  imports: [CommonModule, PageHeaderComponent],
+  imports: [CommonModule, PageHeaderComponent, LoadingSpinnerComponent],
   templateUrl: './auditoria.component.html',
   styleUrl: './auditoria.component.css',
 })
 export class AuditoriaComponent implements OnInit {
   readonly auth = inject(AuthService);
   private readonly api = inject(ApiService);
+  loading = true;
 
   rows: AuditEntry[] = [];
 
@@ -64,5 +66,7 @@ export class AuditoriaComponent implements OnInit {
 
     this.rows = [...fromRequests, ...fromAdjustments]
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    this.loading = false;
   }
 }

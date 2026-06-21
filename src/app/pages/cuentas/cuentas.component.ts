@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/api.service';
 import { PageHeaderComponent } from '../../layout/page-header.component';
 import { ToastService } from '../../core/toast.service';
+import { LoadingSpinnerComponent } from '../../shared/loading-spinner/loading-spinner.component';
 
 type AccountType = 'AHORRO' | 'CORRIENTE';
 type Currency    = 'PEN' | 'USD';
@@ -21,13 +22,14 @@ type BankAccount = {
 @Component({
   selector: 'app-cuentas',
   standalone: true,
-  imports: [CommonModule, FormsModule, PageHeaderComponent],
+  imports: [CommonModule, FormsModule, PageHeaderComponent, LoadingSpinnerComponent],
   templateUrl: './cuentas.component.html',
   styleUrl: './cuentas.component.css',
 })
 export class CuentasComponent implements OnInit {
   private readonly api   = inject(ApiService);
   private readonly toast = inject(ToastService);
+  loading = true;
 
   list: BankAccount[] = [];
   open   = false;
@@ -38,6 +40,7 @@ export class CuentasComponent implements OnInit {
 
   async ngOnInit(): Promise<void> {
     await this.load();
+    this.loading = false;
   }
 
   async load(): Promise<void> {

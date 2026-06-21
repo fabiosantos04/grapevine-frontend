@@ -1,3 +1,6 @@
+@if (loading) {
+  <app-loading-spinner message="Cargando inventario…" />
+} @else {
 <div>
   <app-page-header title="Inventario físico" description="Stock por almacén y ajustes de inventario.">
     <div slot="actions">
@@ -63,7 +66,6 @@
     </div>
   }
 
-  <!-- Filtro por almacén -->
   <div class="mb-4 flex flex-wrap items-center gap-3">
     <div class="flex items-center gap-2">
       <label class="text-sm text-muted-foreground">Filtrar por almacén:</label>
@@ -77,7 +79,6 @@
       </select>
     </div>
 
-    <!-- Tabs -->
     <div class="ml-auto flex rounded-lg border border-border overflow-hidden">
       <button type="button"
         class="px-4 py-2 text-sm transition-colors"
@@ -94,7 +95,6 @@
     </div>
   </div>
 
-  <!-- Tab: Stock actual -->
   @if (activeTab === 'stock') {
     <div class="overflow-hidden rounded-xl border border-border/60 bg-card">
       <table class="w-full text-sm">
@@ -131,7 +131,6 @@
     </div>
   }
 
-  <!-- Tab: Historial de ajustes -->
   @if (activeTab === 'ajustes') {
     <div class="overflow-hidden rounded-xl border border-border/60 bg-card">
       <table class="w-full text-sm">
@@ -170,3 +169,4 @@
     </div>
   }
 </div>
+}

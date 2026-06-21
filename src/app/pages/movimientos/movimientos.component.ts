@@ -5,6 +5,7 @@ import { ApiService } from '../../core/api.service';
 import { AuthService } from '../../core/auth.service';
 import { PageHeaderComponent } from '../../layout/page-header.component';
 import { ToastService } from '../../core/toast.service';
+import { LoadingSpinnerComponent } from '../../shared/loading-spinner/loading-spinner.component';
 
 type MovementStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 
@@ -28,7 +29,7 @@ type CashRegister = {
 @Component({
   selector: 'app-movimientos',
   standalone: true,
-  imports: [CommonModule, FormsModule, PageHeaderComponent],
+  imports: [CommonModule, FormsModule, PageHeaderComponent, LoadingSpinnerComponent],
   templateUrl: './movimientos.component.html',
   styleUrl: './movimientos.component.css',
 })
@@ -36,6 +37,7 @@ export class MovimientosComponent implements OnInit {
   private readonly api   = inject(ApiService);
   private readonly auth  = inject(AuthService);
   private readonly toast = inject(ToastService);
+  loading = true;
 
   caja: CashRegister | null = null;
   open          = false;
@@ -50,6 +52,7 @@ export class MovimientosComponent implements OnInit {
 
   async ngOnInit(): Promise<void> {
     await this.load();
+    this.loading = false;
   }
 
   async load(): Promise<void> {

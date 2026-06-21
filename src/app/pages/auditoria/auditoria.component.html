@@ -1,3 +1,6 @@
+@if (loading) {
+  <app-loading-spinner message="Cargando auditoría…" />
+} @else {
 <div>
   <app-page-header title="Logs de auditoría" description="Trazabilidad de acciones del sistema." />
 
@@ -44,3 +47,4 @@
     </table>
   </div>
 </div>
+}

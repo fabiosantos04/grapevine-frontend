@@ -5,6 +5,7 @@ import { Router } from '@angular/router';
 import { ApiService } from '../../core/api.service';
 import { PageHeaderComponent } from '../../layout/page-header.component';
 import { ToastService } from '../../core/toast.service';
+import { LoadingSpinnerComponent } from '../../shared/loading-spinner/loading-spinner.component';
 
 type Warehouse = {
   id: number;
@@ -24,7 +25,7 @@ type UbigeoDepartment = { name: string; provinces: UbigeoProvince[] };
 @Component({
   selector: 'app-almacenes',
   standalone: true,
-  imports: [CommonModule, FormsModule, PageHeaderComponent],
+  imports: [CommonModule, FormsModule, PageHeaderComponent, LoadingSpinnerComponent],
   templateUrl: './almacenes.component.html',
   styleUrl: './almacenes.component.css',
 })
@@ -32,13 +33,13 @@ export class AlmacenesComponent implements OnInit {
   private readonly api    = inject(ApiService);
   private readonly toast  = inject(ToastService);
   private readonly router = inject(Router);
+  loading = true;
 
   list: Warehouse[] = [];
   open      = false;
   editingId: number | null = null;
   saving    = false;
 
-  // Ubigeo
   ubigeoData: UbigeoDepartment[] = [];
   filteredProvinces: UbigeoProvince[]  = [];
   filteredDistricts: UbigeoDistrict[]  = [];
@@ -50,6 +51,7 @@ export class AlmacenesComponent implements OnInit {
 
   async ngOnInit(): Promise<void> {
     await Promise.all([this.load(), this.loadUbigeo()]);
+    this.loading = false;
   }
 
   async load(): Promise<void> {

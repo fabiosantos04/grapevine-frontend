@@ -1,0 +1,129 @@
+<div class="min-h-screen bg-background text-foreground">
+
+  <header class="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur">
+    <div class="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+      <div class="flex items-center gap-2">
+        <span class="text-2xl">🍷</span>
+        <span class="font-display text-xl font-bold">Vitivinícolas Perú</span>
+      </div>
+      <button type="button"
+        class="rounded-md bg-primary px-5 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+        (click)="irAlSistema()">
+        Iniciar sesión
+      </button>
+    </div>
+  </header>
+
+  <section class="relative overflow-hidden bg-gradient-wine">
+    <div class="absolute inset-0 opacity-20"
+      style="background: radial-gradient(circle at 25% 30%, var(--accent) 0%, transparent 55%);"></div>
+    <div class="relative mx-auto max-w-6xl px-6 py-24 text-primary-foreground">
+      <div class="max-w-2xl">
+        <p class="mb-4 inline-block rounded-full border border-accent/40 bg-accent/10 px-3 py-1 text-xs uppercase tracking-wider text-accent">
+          Sistema ERP integral
+        </p>
+        <h1 class="font-display text-5xl font-bold leading-tight md:text-6xl">
+          Tradición y tecnología
+          <span class="text-accent"> en cada barrica</span>
+        </h1>
+        <p class="mt-6 text-lg opacity-90">
+          Plataforma de gestión empresarial para la compra y venta de productos vitivinícolas:
+          corchos y piscos. Administración, ventas, logística y almacén en un solo lugar.
+        </p>
+        <div class="mt-8 flex flex-wrap gap-3">
+          <button type="button"
+            class="rounded-md bg-accent px-6 py-3 font-medium text-accent-foreground hover:opacity-90"
+            (click)="irAlSistema()">
+            Acceder al sistema
+          </button>
+          <a href="#empresa"
+            class="rounded-md border border-primary-foreground/30 px-6 py-3 font-medium hover:bg-primary-foreground/10">
+            Conocer más
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="border-b border-border/60 bg-card">
+    <div class="mx-auto grid max-w-6xl grid-cols-2 gap-6 px-6 py-12 md:grid-cols-4">
+      @for (s of stats; track s.label) {
+        <div class="text-center">
+          <p class="font-display text-4xl font-bold text-accent">{{ s.value }}</p>
+          <p class="mt-2 text-sm text-muted-foreground">{{ s.label }}</p>
+        </div>
+      }
+    </div>
+  </section>
+
+  <section id="empresa" class="mx-auto max-w-6xl px-6 py-20">
+    <div class="grid gap-12 md:grid-cols-2 md:items-center">
+      <div>
+        <h2 class="font-display text-3xl font-bold">Sobre la empresa</h2>
+        <p class="mt-4 text-muted-foreground">
+          Vitivinícolas Perú se dedica a la compra y venta de productos vitivinícolas, manejando
+          actualmente el rubro de corchos y piscos. La empresa vende aproximadamente 250,000 productos
+          vitivinícolas al año, con una cartera de unos 150 clientes y más de 100 proveedores.
+        </p>
+        <p class="mt-4 text-muted-foreground">
+          Con presencia en múltiples almacenes distribuidos por todo el país, la empresa requiere un
+          sistema que agilice su funcionamiento en las áreas de administración y contabilidad, ventas,
+          y logística y almacén.
+        </p>
+      </div>
+      <div class="rounded-2xl border border-border/60 bg-gradient-wine p-10 text-center text-primary-foreground">
+        <span class="text-6xl">🍇</span>
+        <p class="mt-6 font-display text-2xl font-bold">Calidad en cada producto</p>
+        <p class="mt-2 text-sm opacity-90">Corchos y piscos de la mejor selección peruana</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="bg-muted/20">
+    <div class="mx-auto max-w-6xl px-6 py-20">
+      <div class="text-center">
+        <h2 class="font-display text-3xl font-bold">Lo que automatiza el sistema</h2>
+        <p class="mx-auto mt-3 max-w-2xl text-muted-foreground">
+          Una plataforma integral que cubre los procesos clave de la operación de la empresa.
+        </p>
+      </div>
+      <div class="mt-12 grid gap-6 md:grid-cols-2">
+        @for (m of modules; track m.title) {
+          <div class="rounded-xl border border-border/60 bg-card p-6 transition-colors hover:border-accent/40">
+            <div class="flex items-start gap-4">
+              <span class="text-3xl">{{ m.icon }}</span>
+              <div>
+                <h3 class="font-display text-lg font-semibold">{{ m.title }}</h3>
+                <p class="mt-2 text-sm text-muted-foreground">{{ m.description }}</p>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  </section>
+
+  <section class="mx-auto max-w-6xl px-6 py-20">
+    <div class="rounded-2xl border border-border/60 bg-gradient-wine p-12 text-center text-primary-foreground">
+      <h2 class="font-display text-3xl font-bold">¿Listo para gestionar tu operación?</h2>
+      <p class="mt-3 opacity-90">Ingresa al sistema con tu cuenta de trabajador.</p>
+      <button type="button"
+        class="mt-6 rounded-md bg-accent px-8 py-3 font-medium text-accent-foreground hover:opacity-90"
+        (click)="irAlSistema()">
+        Iniciar sesión
+      </button>
+    </div>
+  </section>
+
+  <footer class="border-t border-border/60 bg-card">
+    <div class="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 py-8 text-sm text-muted-foreground md:flex-row">
+      <div class="flex items-center gap-2">
+        <span class="text-xl">🍷</span>
+        <span class="font-display font-bold text-foreground">Vitivinícolas Perú</span>
+      </div>
+      <p>Av. La Viña 123, Lima - Perú · RUC: 20123456789</p>
+      <p>© 2026 Vitivinícolas Perú. Todos los derechos reservados.</p>
+    </div>
+  </footer>
+
+</div>

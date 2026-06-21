@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/api.service';
 import { PageHeaderComponent } from '../../layout/page-header.component';
 import { ToastService } from '../../core/toast.service';
+import { LoadingSpinnerComponent } from '../../shared/loading-spinner/loading-spinner.component';
 
 type DocumentType = 'DNI' | 'RUC' | 'CE';
 
@@ -33,13 +34,14 @@ type OrderResponse = {
 @Component({
   selector: 'app-clientes',
   standalone: true,
-  imports: [CommonModule, FormsModule, PageHeaderComponent],
+  imports: [CommonModule, FormsModule, PageHeaderComponent, LoadingSpinnerComponent],
   templateUrl: './clientes.component.html',
   styleUrl: './clientes.component.css',
 })
 export class ClientesComponent implements OnInit {
   private readonly api   = inject(ApiService);
   private readonly toast = inject(ToastService);
+  loading = true;
 
   list: Customer[] = [];
   open      = false;
@@ -67,6 +69,7 @@ export class ClientesComponent implements OnInit {
 
   async ngOnInit(): Promise<void> {
     await this.load();
+    this.loading = false;
   }
 
   async load(): Promise<void> {
