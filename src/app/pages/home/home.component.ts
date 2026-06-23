@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, inject } from '@angular/core';
 import { Router } from '@angular/router';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-home',
@@ -11,6 +12,8 @@ import { Router } from '@angular/router';
 })
 export class HomeComponent {
   private readonly router = inject(Router);
+
+  readonly version = environment.version;
 
   readonly stats = [
     { value: '250 000', label: 'Productos vendidos al año' },

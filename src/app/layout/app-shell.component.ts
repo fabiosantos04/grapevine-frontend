@@ -4,6 +4,7 @@ import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/rou
 import type { AppRole } from '../core/app-role';
 import { AuthService } from '../core/auth.service';
 import { SettingsMenuComponent } from './settings-menu.component';
+import { environment } from '../../environments/environment';
 
 type NavItem = { to: string; label: string; icon: string; roles: AppRole[] };
 type NavGroup = { section: string; items: NavItem[] };
@@ -70,6 +71,7 @@ const NAV: NavGroup[] = [
 export class AppShellComponent {
   readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  readonly version = environment.version;
 
   readonly visibleGroups = computed(() => {
     const roles = this.auth.roles();
