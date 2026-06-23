@@ -50,6 +50,10 @@ export class MovimientosComponent implements OnInit {
     return this.auth.canApproveCashRenditions();
   }
 
+  get isAdmin(): boolean {
+    return this.auth.roles().includes('admin');
+  }
+
   async ngOnInit(): Promise<void> {
     await this.load();
     this.loading = false;

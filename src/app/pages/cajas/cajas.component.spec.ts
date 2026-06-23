@@ -99,7 +99,7 @@ describe('CajasComponent', () => {
 
     expect(apiSpy.post).toHaveBeenCalledWith('/cash/close', jasmine.objectContaining({ bankAccountId: 1 }));
     expect(toastSpy.success).toHaveBeenCalledWith('Caja cerrada');
-    expect(component.depositAccountId).toBe('');
+    expect(component.depositAccountId as number | '').toBe('');
   });
 
   it('closeCash debe mostrar error si el API falla', async () => {

@@ -47,6 +47,10 @@ export class SolicitudesComponent implements OnInit {
     return this.auth.canApprovePurchases();
   }
 
+  get isAdmin(): boolean {
+    return this.auth.roles().includes('admin');
+  }
+
   get canCreateRequest(): boolean {
     const roles = this.auth.roles();
     return roles.includes('almacenero') || roles.includes('ingeniero');

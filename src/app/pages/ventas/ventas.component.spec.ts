@@ -130,7 +130,7 @@ describe('VentasComponent', () => {
     component.form.customerName      = 'Empresa A';
     component.form.customerDocument  = '20123456789';
     component.onClienteModeChange();
-    expect(component.selectedCustomerId).toBe('');
+    expect(component.selectedCustomerId as number | '').toBe('');
     expect(component.form.customerName).toBe('');
     expect(component.form.customerDocument).toBe('');
   });
