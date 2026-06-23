@@ -14,7 +14,7 @@
           <div class="mb-4">
             <div class="px-3 py-2 text-[10px] uppercase tracking-widest text-muted-foreground">{{ g.section }}</div>
             @for (it of g.items; track it.to) {
-              
+              <a
                 [routerLink]="it.to"
                 routerLinkActive="bg-primary/10 text-foreground font-medium"
                 [routerLinkActiveOptions]="{ exact: true }"
