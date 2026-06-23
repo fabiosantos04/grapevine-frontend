@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject } from '@angular/core';
+import { Router } from '@angular/router';
 import { AuthService } from '../../core/auth.service';
 import { ApiService } from '../../core/api.service';
 import { PageHeaderComponent } from '../../layout/page-header.component';
@@ -40,11 +41,18 @@ type AdjustmentRow = {
 export class AuditoriaComponent implements OnInit {
   readonly auth = inject(AuthService);
   private readonly api = inject(ApiService);
+  private readonly router = inject(Router);
   loading = true;
 
   rows: AuditEntry[] = [];
 
   async ngOnInit(): Promise<void> {
+    await this.auth.ready;
+    if (!this.auth.canViewAudit()) {
+      await this.router.navigateByUrl('/app/dashboard');
+      return;
+    }
+
     const [requests, adjustments] = await Promise.all([
       this.api.get<PurchaseRequest[]>('/purchase-requests').catch(() => [] as PurchaseRequest[]),
       this.api.get<AdjustmentRow[]>('/inventory').catch(() => [] as AdjustmentRow[]),

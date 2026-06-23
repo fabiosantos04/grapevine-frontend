@@ -7,6 +7,7 @@ import { ApiService } from '../../core/api.service';
 import { PageHeaderComponent } from '../../layout/page-header.component';
 import { ToastService } from '../../core/toast.service';
 import { LoadingSpinnerComponent } from '../../shared/loading-spinner/loading-spinner.component';
+import { BACKEND_ROLES, ROLE_LABELS, type BackendRole } from '../../core/app-role';
 
 type UserResponse = {
   id: number;
@@ -17,8 +18,8 @@ type UserResponse = {
   mustChangePassword: boolean;
 };
 
-const ROLES = ['ADMIN', 'CAJERO', 'LOGISTICA'] as const;
-type Role = typeof ROLES[number];
+const ROLES = BACKEND_ROLES;
+type Role = BackendRole;
 
 @Component({
   selector: 'app-usuarios',
@@ -29,6 +30,7 @@ type Role = typeof ROLES[number];
 })
 export class UsuariosComponent implements OnInit {
   readonly ROLES         = ROLES;
+  readonly ROLE_LABELS   = ROLE_LABELS;
   private readonly api   = inject(ApiService);
   private readonly auth  = inject(AuthService);
   private readonly router = inject(Router);
@@ -43,9 +45,13 @@ export class UsuariosComponent implements OnInit {
     fullName: '', email: '', role: 'CAJERO', enabled: true,
   };
 
+  roleLabel(role: string): string {
+    return ROLE_LABELS[role as BackendRole] ?? role;
+  }
+
   async ngOnInit(): Promise<void> {
     await this.auth.ready;
-    if (!this.auth.roles().includes('admin')) {
+    if (!this.auth.canManageUsers()) {
       await this.router.navigateByUrl('/app/dashboard');
       return;
     }

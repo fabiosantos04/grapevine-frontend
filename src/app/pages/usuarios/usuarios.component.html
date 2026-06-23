@@ -36,7 +36,7 @@
             <select class="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
               [(ngModel)]="form.role" [ngModelOptions]="{ standalone: true }">
               @for (r of ROLES; track r) {
-                <option [value]="r">{{ r }}</option>
+                <option [value]="r">{{ ROLE_LABELS[r] }}</option>
               }
             </select>
           </div>
@@ -82,7 +82,7 @@
             <td class="p-3 text-muted-foreground">{{ u.email }}</td>
             <td class="p-3">
               <span class="rounded-full border border-accent/30 bg-accent/10 px-2 py-0.5 text-xs text-accent">
-                {{ u.role }}
+                {{ roleLabel(u.role) }}
               </span>
             </td>
             <td class="p-3">

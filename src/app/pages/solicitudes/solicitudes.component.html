@@ -4,11 +4,13 @@
 <div>
   <app-page-header title="Solicitudes de compra" description="Detección de stock bajo y solicitudes de reposición.">
     <div slot="actions">
-      <button type="button"
-        class="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground"
-        (click)="open = true; resetForm()">
-        + Nueva solicitud
-      </button>
+      @if (canCreateRequest) {
+        <button type="button"
+          class="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground"
+          (click)="open = true; resetForm()">
+          + Nueva solicitud
+        </button>
+      }
     </div>
   </app-page-header>
 
@@ -94,7 +96,7 @@
               </td>
               <td class="px-4 py-3">
                 <div class="flex flex-wrap gap-1">
-                  @if (r.status === 'PENDING' && isAdmin) {
+                  @if (r.status === 'PENDING' && canApprovePurchases) {
                     <button type="button"
                       class="rounded-md bg-accent/20 px-2 py-1 text-xs text-accent hover:bg-accent/30"
                       (click)="approve(r.id)">Aprobar</button>
@@ -102,7 +104,7 @@
                       class="rounded-md bg-destructive/20 px-2 py-1 text-xs text-destructive hover:bg-destructive/30"
                       (click)="reject(r.id)">Rechazar</button>
                   }
-                  @if (r.status === 'APPROVED' && !r.purchaseCreated && isAdmin) {
+                  @if (r.status === 'APPROVED' && !r.purchaseCreated && canApprovePurchases) {
                     <button type="button"
                       class="rounded-md bg-primary/80 px-2 py-1 text-xs text-primary-foreground hover:bg-primary"
                       (click)="createPurchase(r)">

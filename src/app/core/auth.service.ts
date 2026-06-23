@@ -1,6 +1,8 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
+import type { AppRole } from './app-role';
+import { mapBackendRole } from './app-role';
 import type { LoginRequest, LoginResponse } from './auth.model';
 
 const TOKEN_KEY = 'erp-token';
@@ -18,12 +20,34 @@ export class AuthService {
   readonly loading         = this._loading.asReadonly();
   readonly isAuthenticated = computed(() => !!this._user());
 
-  readonly roles = computed(() => {
+  readonly roles = computed((): AppRole[] => {
     const u = this._user();
-    return u ? [u.role.toLowerCase()] : [];
+    if (!u) return [];
+    const mapped = mapBackendRole(u.role);
+    return mapped ? [mapped] : [];
   });
 
   readonly ready: Promise<void> = Promise.resolve();
+
+  isSoftwareEngineer(): boolean {
+    return this.roles().includes('ingeniero');
+  }
+
+  canManageUsers(): boolean {
+    return hasAny(this.roles(), ['admin', 'ingeniero']);
+  }
+
+  canViewAudit(): boolean {
+    return hasAny(this.roles(), ['admin', 'ingeniero']);
+  }
+
+  canApprovePurchases(): boolean {
+    return hasAny(this.roles(), ['admin', 'ingeniero']);
+  }
+
+  canApproveCashRenditions(): boolean {
+    return hasAny(this.roles(), ['admin', 'ingeniero']);
+  }
 
   async login(request: LoginRequest): Promise<void> {
     this._loading.set(true);
@@ -69,4 +93,8 @@ export class AuthService {
       return null;
     }
   }
+}
+
+function hasAny(userRoles: AppRole[], allowed: AppRole[]): boolean {
+  return allowed.some((role) => userRoles.includes(role));
 }

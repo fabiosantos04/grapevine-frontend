@@ -46,8 +46,8 @@ export class MovimientosComponent implements OnInit {
   receiptPreview: string | null = null;
   form = { type: 'INCOME' as 'INCOME' | 'EXPENSE', description: '', amount: 0, receiptUrl: '' };
 
-  get isAdmin(): boolean {
-    return this.auth.roles().includes('admin');
+  get canApproveRenditions(): boolean {
+    return this.auth.canApproveCashRenditions();
   }
 
   async ngOnInit(): Promise<void> {

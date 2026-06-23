@@ -43,12 +43,20 @@ export class SolicitudesComponent implements OnInit {
   saving  = false;
   form    = { productId: '' as number | '', quantity: 1, justification: '' };
 
-  get isAdmin(): boolean {
-    return this.auth.roles().includes('admin');
+  get canApprovePurchases(): boolean {
+    return this.auth.canApprovePurchases();
+  }
+
+  get canCreateRequest(): boolean {
+    const roles = this.auth.roles();
+    return roles.includes('almacenero') || roles.includes('ingeniero');
   }
 
   async ngOnInit(): Promise<void> {
-    await Promise.all([this.load(), this.loadProducts()]);
+    await this.load();
+    if (this.canCreateRequest) {
+      await this.loadProducts();
+    }
     this.loading = false;
   }
 

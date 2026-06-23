@@ -93,7 +93,7 @@
             <th class="px-4 py-3 text-right">Monto</th>
             <th class="px-4 py-3 text-left">Estado</th>
             <th class="px-4 py-3 text-left">Comprobante</th>
-            @if (isAdmin) {
+            @if (canApproveRenditions) {
               <th class="px-4 py-3 text-left">Acciones</th>
             }
           </tr>
@@ -101,7 +101,7 @@
         <tbody>
           @if (!caja.movements.length) {
             <tr>
-              <td [colSpan]="isAdmin ? 7 : 6" class="px-4 py-12 text-center text-muted-foreground">
+              <td [colSpan]="canApproveRenditions ? 7 : 6" class="px-4 py-12 text-center text-muted-foreground">
                 Sin movimientos registrados
               </td>
             </tr>
@@ -141,7 +141,7 @@
                     <span class="text-xs text-muted-foreground">—</span>
                   }
                 </td>
-                @if (isAdmin) {
+                @if (canApproveRenditions) {
                   <td class="px-4 py-3">
                     @if (m.status === 'PENDING') {
                       <div class="flex gap-2">
