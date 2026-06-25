@@ -5,9 +5,14 @@ export interface LoginRequest {
 
 export interface LoginResponse {
   token: string;
+  refreshToken: string;
   id: number;
   fullName: string;
   email: string;
   role: string;
   mustChangePassword: boolean;
+}
+
+export interface TokenRefreshRequest {
+  refreshToken: string;
 }

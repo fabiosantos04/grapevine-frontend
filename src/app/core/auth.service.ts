@@ -3,10 +3,12 @@ import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import type { AppRole } from './app-role';
 import { mapBackendRole } from './app-role';
-import type { LoginRequest, LoginResponse } from './auth.model';
+import type { LoginRequest, LoginResponse, TokenRefreshRequest } from './auth.model';
 
-const TOKEN_KEY = 'erp-token';
-const USER_KEY  = 'erp-user';
+const TOKEN_KEY         = 'erp-token';
+const REFRESH_TOKEN_KEY = 'erp-refresh-token';
+const USER_KEY          = 'erp-user';
+const API               = 'http://localhost:8080/api';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -53,14 +55,24 @@ export class AuthService {
     this._loading.set(true);
     try {
       const response = await firstValueFrom(
-        this.http.post<LoginResponse>('http://localhost:8080/api/auth/login', request)
+        this.http.post<LoginResponse>(`${API}/auth/login`, request)
       );
-      localStorage.setItem(TOKEN_KEY, response.token);
-      localStorage.setItem(USER_KEY, JSON.stringify(response));
-      this._user.set(response);
+      this.saveSession(response);
     } finally {
       this._loading.set(false);
     }
+  }
+
+  async refreshToken(): Promise<LoginResponse> {
+    const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
+    if (!refreshToken) throw new Error('No refresh token disponible');
+
+    const body: TokenRefreshRequest = { refreshToken };
+    const response = await firstValueFrom(
+      this.http.post<LoginResponse>(`${API}/auth/refresh`, body)
+    );
+    this.saveSession(response);
+    return response;
   }
 
   mustChangePassword(): boolean {
@@ -77,12 +89,24 @@ export class AuthService {
 
   signOut(): void {
     localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
     this._user.set(null);
   }
 
   getToken(): string | null {
     return localStorage.getItem(TOKEN_KEY);
+  }
+
+  getRefreshToken(): string | null {
+    return localStorage.getItem(REFRESH_TOKEN_KEY);
+  }
+
+  private saveSession(response: LoginResponse): void {
+    localStorage.setItem(TOKEN_KEY,         response.token);
+    localStorage.setItem(REFRESH_TOKEN_KEY, response.refreshToken);
+    localStorage.setItem(USER_KEY,          JSON.stringify(response));
+    this._user.set(response);
   }
 
   private loadUser(): LoginResponse | null {
