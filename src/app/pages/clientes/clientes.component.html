@@ -35,72 +35,101 @@
   </div>
 
   @if (open) {
-    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" (click.self)="open = false">
-      <div class="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-lg border border-border bg-card p-6 shadow-lg">
-        <h2 class="font-display text-lg font-semibold">
-          {{ editingId ? 'Editar cliente' : 'Nuevo cliente' }}
-        </h2>
-        <div class="mt-4 space-y-3">
-          <div>
-            <label class="text-sm">Razón social / Nombre</label>
-            <input class="mt-1 w-full rounded-md border border-input px-3 py-2 text-sm"
-              [(ngModel)]="form.razonSocial" [ngModelOptions]="{ standalone: true }" />
-          </div>
-          <div class="grid grid-cols-2 gap-3">
+      <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" (click.self)="open = false">
+        <div class="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-lg border border-border bg-card p-6 shadow-lg">
+          <h2 class="font-display text-lg font-semibold">
+            {{ editingId ? 'Editar cliente' : 'Nuevo cliente' }}
+          </h2>
+          <form class="mt-4 space-y-3" [formGroup]="form" (ngSubmit)="submit()">
+
             <div>
-              <label class="text-sm">Tipo documento</label>
-              <select class="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                [(ngModel)]="form.tipoDocumento" [ngModelOptions]="{ standalone: true }">
-                <option value="DNI">DNI</option>
-                <option value="RUC">RUC</option>
-                <option value="CE">CE</option>
-              </select>
+              <label class="text-sm">Razón social / Nombre</label>
+              <input formControlName="razonSocial"
+                class="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+                [class.border-destructive]="razonSocial.invalid && razonSocial.touched"
+                [class.border-input]="!(razonSocial.invalid && razonSocial.touched)" />
+              @if (razonSocial.touched && razonSocial.hasError('required')) {
+                <p class="mt-1 text-xs text-destructive">El nombre es obligatorio.</p>
+              }
             </div>
-            <div>
-              <label class="text-sm">Número de documento</label>
-              <input class="mt-1 w-full rounded-md border border-input px-3 py-2 text-sm"
-                [(ngModel)]="form.documento" [ngModelOptions]="{ standalone: true }" />
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="text-sm">Tipo documento</label>
+                <select formControlName="tipoDocumento"
+                  class="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  (change)="onTipoDocumentoChange()">
+                  <option value="DNI">DNI</option>
+                  <option value="RUC">RUC</option>
+                  <option value="CE">CE</option>
+                </select>
+              </div>
+              <div>
+                <label class="text-sm">Número de documento</label>
+                <input formControlName="documento"
+                  class="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+                  [class.border-destructive]="documento.invalid && documento.touched"
+                  [class.border-input]="!(documento.invalid && documento.touched)"
+                  (input)="onSoloDigitos('documento', $event)" />
+                @if (documento.touched && documento.hasError('required')) {
+                  <p class="mt-1 text-xs text-destructive">El documento es obligatorio.</p>
+                } @else if (documento.touched && documento.hasError('onlyDigits')) {
+                  <p class="mt-1 text-xs text-destructive">Solo se permiten dígitos.</p>
+                } @else if (documento.touched && documento.hasError('sameDigits')) {
+                  <p class="mt-1 text-xs text-destructive">El documento no puede tener todos los dígitos iguales.</p>
+                } @else if (documento.touched && documento.hasError('docLength')) {
+                  <p class="mt-1 text-xs text-destructive">{{ documento.getError('docLength') }}</p>
+                }
+              </div>
             </div>
-          </div>
-          <div class="grid grid-cols-2 gap-3">
-            <div>
-              <label class="text-sm">Contacto</label>
-              <input class="mt-1 w-full rounded-md border border-input px-3 py-2 text-sm"
-                [(ngModel)]="form.contacto" [ngModelOptions]="{ standalone: true }" />
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="text-sm">Contacto</label>
+                <input formControlName="contacto"
+                  class="mt-1 w-full rounded-md border border-input px-3 py-2 text-sm" />
+              </div>
+              <div>
+                <label class="text-sm">Teléfono</label>
+                <input formControlName="telefono"
+                  class="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+                  [class.border-destructive]="telefono.invalid && telefono.touched"
+                  [class.border-input]="!(telefono.invalid && telefono.touched)"
+                  (input)="onSoloDigitos('telefono', $event)" />
+                @if (telefono.touched && telefono.hasError('sameDigits')) {
+                  <p class="mt-1 text-xs text-destructive">El teléfono no puede tener todos los dígitos iguales.</p>
+                }
+              </div>
             </div>
-            <div>
-              <label class="text-sm">Teléfono</label>
-              <input class="mt-1 w-full rounded-md border border-input px-3 py-2 text-sm"
-                [(ngModel)]="form.telefono" [ngModelOptions]="{ standalone: true }" />
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="text-sm">Email</label>
+                <input type="email" formControlName="email"
+                  class="mt-1 w-full rounded-md border border-input px-3 py-2 text-sm" />
+              </div>
+              <div>
+                <label class="text-sm">Segmento</label>
+                <input formControlName="segmento"
+                  class="mt-1 w-full rounded-md border border-input px-3 py-2 text-sm"
+                  placeholder="Ej: Mayorista, Minorista…" />
+              </div>
             </div>
-          </div>
-          <div class="grid grid-cols-2 gap-3">
-            <div>
-              <label class="text-sm">Email</label>
-              <input type="email" class="mt-1 w-full rounded-md border border-input px-3 py-2 text-sm"
-                [(ngModel)]="form.email" [ngModelOptions]="{ standalone: true }" />
+
+            <div class="mt-6 flex justify-end gap-2">
+              <button type="button"
+                class="rounded-md border border-border px-4 py-2 text-sm"
+                (click)="open = false">Cancelar</button>
+              <button type="submit"
+                class="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-50"
+                [disabled]="saving">
+                {{ saving ? 'Guardando…' : (editingId ? 'Actualizar' : 'Guardar') }}
+              </button>
             </div>
-            <div>
-              <label class="text-sm">Segmento</label>
-              <input class="mt-1 w-full rounded-md border border-input px-3 py-2 text-sm"
-                [(ngModel)]="form.segmento" [ngModelOptions]="{ standalone: true }"
-                placeholder="Ej: Mayorista, Minorista…" />
-            </div>
-          </div>
-        </div>
-        <div class="mt-6 flex justify-end gap-2">
-          <button type="button"
-            class="rounded-md border border-border px-4 py-2 text-sm"
-            (click)="open = false">Cancelar</button>
-          <button type="button"
-            class="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-50"
-            [disabled]="saving || !form.razonSocial || !form.documento"
-            (click)="submit()">
-            {{ saving ? 'Guardando…' : (editingId ? 'Actualizar' : 'Guardar') }}
-          </button>
+
+          </form>
         </div>
       </div>
-    </div>
   }
 
   @if (historyOpen) {

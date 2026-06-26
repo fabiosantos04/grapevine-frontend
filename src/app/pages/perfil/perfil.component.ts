@@ -1,26 +1,22 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { ReactiveFormsModule, FormBuilder, Validators, FormsModule } from '@angular/forms';
 import { AuthService } from '../../core/auth.service';
 import { ApiService } from '../../core/api.service';
 import { PageHeaderComponent } from '../../layout/page-header.component';
 import { ToastService } from '../../core/toast.service';
 import { LoadingSpinnerComponent } from '../../shared/loading-spinner/loading-spinner.component';
+import { strongPasswordValidator, passwordMatchValidator } from '../../core/validators';
 
 type ProfileResponse = {
-  id: number;
-  fullName: string;
-  email: string;
-  role: string;
-  enabled: boolean;
-  mustChangePassword: boolean;
-  avatar: string | null;
+  id: number; fullName: string; email: string;
+  role: string; enabled: boolean; mustChangePassword: boolean; avatar: string | null;
 };
 
 @Component({
   selector: 'app-perfil',
   standalone: true,
-  imports: [CommonModule, FormsModule, PageHeaderComponent, LoadingSpinnerComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, PageHeaderComponent, LoadingSpinnerComponent],
   templateUrl: './perfil.component.html',
   styleUrl: './perfil.component.css',
 })
@@ -28,24 +24,31 @@ export class PerfilComponent implements OnInit {
   readonly auth          = inject(AuthService);
   private readonly api   = inject(ApiService);
   private readonly toast = inject(ToastService);
-  loading = true;
+  private readonly fb    = inject(FormBuilder);
 
-  fullName        = '';
+  loading       = true;
+  fullName      = '';
   avatar: string | null = null;
-  currentPassword = '';
-  newPassword     = '';
-  confirmPassword = '';
-  passwordError   = '';
-  savingProfile   = false;
-  savingPassword  = false;
-  savingAvatar    = false;
+  savingProfile = false;
+  savingPassword = false;
+  savingAvatar  = false;
+
+  passwordForm = this.fb.group({
+    currentPassword: ['', Validators.required],
+    newPassword:     ['', [Validators.required, strongPasswordValidator]],
+    confirmPassword: ['', Validators.required],
+  }, { validators: passwordMatchValidator });
+
+  get currentPassword() { return this.passwordForm.get('currentPassword')!; }
+  get newPassword()     { return this.passwordForm.get('newPassword')!;     }
+  get confirmPassword() { return this.passwordForm.get('confirmPassword')!; }
 
   async ngOnInit(): Promise<void> {
     await this.auth.ready;
     try {
-      const profile  = await this.api.get<ProfileResponse>('/profile');
-      this.fullName  = profile.fullName;
-      this.avatar    = profile.avatar ?? null;
+      const profile = await this.api.get<ProfileResponse>('/profile');
+      this.fullName = profile.fullName;
+      this.avatar   = profile.avatar ?? null;
     } catch {
       this.fullName = this.auth.user()?.fullName ?? '';
     } finally {
@@ -55,27 +58,18 @@ export class PerfilComponent implements OnInit {
 
   initials(): string {
     return (this.auth.user()?.fullName ?? '?')
-      .split(' ')
-      .map((w) => w[0])
-      .slice(0, 2)
-      .join('')
-      .toUpperCase();
+      .split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
   }
 
   async onFileChange(event: Event): Promise<void> {
     const input = event.target as HTMLInputElement;
     const file  = input.files?.[0];
     if (!file) return;
-
-    if (file.size > 1_000_000) {
-      this.toast.error('La imagen no debe superar 1 MB');
-      return;
-    }
-
+    if (file.size > 1_000_000) { this.toast.error('La imagen no debe superar 1 MB'); return; }
     const reader = new FileReader();
     reader.onload = async () => {
-      const base64     = reader.result as string;
-      this.avatar      = base64;
+      const base64      = reader.result as string;
+      this.avatar       = base64;
       this.savingAvatar = true;
       try {
         await this.api.put('/profile', { avatar: base64 });
@@ -105,27 +99,17 @@ export class PerfilComponent implements OnInit {
   }
 
   async savePassword(): Promise<void> {
-    this.passwordError = '';
-    if (this.newPassword !== this.confirmPassword) {
-      this.passwordError = 'Las contraseñas no coinciden';
-      return;
-    }
-    if (this.newPassword.length < 6) {
-      this.passwordError = 'Mínimo 6 caracteres';
-      return;
-    }
+    if (this.passwordForm.invalid) { this.passwordForm.markAllAsTouched(); return; }
     this.savingPassword = true;
     try {
       await this.api.put('/profile/change-password', {
-        currentPassword: this.currentPassword,
-        newPassword:     this.newPassword,
+        currentPassword: this.currentPassword.value,
+        newPassword:     this.newPassword.value,
       });
-      this.currentPassword = '';
-      this.newPassword     = '';
-      this.confirmPassword = '';
+      this.passwordForm.reset();
       this.toast.success('Contraseña cambiada correctamente');
     } catch {
-      this.passwordError = 'Contraseña actual incorrecta';
+      this.passwordForm.setErrors({ wrongCurrent: true });
     } finally {
       this.savingPassword = false;
     }

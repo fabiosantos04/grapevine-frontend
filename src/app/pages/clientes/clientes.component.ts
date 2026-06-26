@@ -1,48 +1,39 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { ReactiveFormsModule, FormBuilder, Validators, FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/api.service';
 import { PageHeaderComponent } from '../../layout/page-header.component';
 import { ToastService } from '../../core/toast.service';
 import { LoadingSpinnerComponent } from '../../shared/loading-spinner/loading-spinner.component';
+import { noSameDigitsValidator, documentLengthValidator } from '../../core/validators';
 
 type DocumentType = 'DNI' | 'RUC' | 'CE';
 
 type Customer = {
-  id: number;
-  razonSocial: string;
-  tipoDocumento: DocumentType;
-  documento: string;
-  contacto: string;
-  telefono: string;
-  email: string;
-  segmento: string;
-  active: boolean;
+  id: number; razonSocial: string; tipoDocumento: DocumentType;
+  documento: string; contacto: string; telefono: string;
+  email: string; segmento: string; active: boolean;
 };
 
 type OrderResponse = {
-  id: number;
-  customerName: string;
-  customerDocument: string;
-  warehouseName: string;
-  total: number;
-  status: string;
-  createdAt: string;
+  id: number; customerName: string; customerDocument: string;
+  warehouseName: string; total: number; status: string; createdAt: string;
   details: { productName: string; quantity: number; price: number; subtotal: number }[];
 };
 
 @Component({
   selector: 'app-clientes',
   standalone: true,
-  imports: [CommonModule, FormsModule, PageHeaderComponent, LoadingSpinnerComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, PageHeaderComponent, LoadingSpinnerComponent],
   templateUrl: './clientes.component.html',
   styleUrl: './clientes.component.css',
 })
 export class ClientesComponent implements OnInit {
   private readonly api   = inject(ApiService);
   private readonly toast = inject(ToastService);
-  loading = true;
+  private readonly fb    = inject(FormBuilder);
 
+  loading = true;
   list: Customer[] = [];
   open      = false;
   saving    = false;
@@ -52,20 +43,42 @@ export class ClientesComponent implements OnInit {
   filterTipoDocumento: DocumentType | '' = '';
   filterEstado: 'todos' | 'activos' | 'inactivos' = 'todos';
 
-  historyOpen = false;
-  historyLoading = false;
+  historyOpen     = false;
+  historyLoading  = false;
   historyCustomer: Customer | null = null;
-  historyOrders: OrderResponse[] = [];
+  historyOrders: OrderResponse[]   = [];
 
-  form: {
-    razonSocial: string;
-    tipoDocumento: DocumentType;
-    documento: string;
-    contacto: string;
-    telefono: string;
-    email: string;
-    segmento: string;
-  } = { razonSocial: '', tipoDocumento: 'DNI', documento: '', contacto: '', telefono: '', email: '', segmento: '' };
+private getTipoDocumento(): DocumentType {
+  return (this.form?.get('tipoDocumento')?.value as DocumentType) ?? 'DNI';
+}
+
+form = this.fb.group({
+  razonSocial:   ['', Validators.required],
+  tipoDocumento: ['DNI'],
+  documento:     ['', [Validators.required, noSameDigitsValidator,
+                   documentLengthValidator(() => this.getTipoDocumento())]],
+  contacto:      [''],
+  telefono:      ['', [noSameDigitsValidator]],
+  email:         [''],
+  segmento:      [''],
+});
+
+  get razonSocial()   { return this.form.get('razonSocial')!;   }
+  get tipoDocumento() { return this.form.get('tipoDocumento')!; }
+  get documento()     { return this.form.get('documento')!;     }
+  get telefono()      { return this.form.get('telefono')!;      }
+
+  onTipoDocumentoChange(): void {
+    this.documento.setValue('');
+    this.documento.updateValueAndValidity();
+  }
+
+  onSoloDigitos(field: 'documento' | 'telefono', event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const clean = input.value.replace(/[^0-9]/g, '');
+    this.form.get(field)!.setValue(clean, { emitEvent: false });
+    input.value = clean;
+  }
 
   async ngOnInit(): Promise<void> {
     await this.load();
@@ -88,46 +101,41 @@ export class ClientesComponent implements OnInit {
         || c.documento.toLowerCase().includes(term)
         || (c.email ?? '').toLowerCase().includes(term)
         || (c.contacto ?? '').toLowerCase().includes(term);
-      const matchTipo = !this.filterTipoDocumento || c.tipoDocumento === this.filterTipoDocumento;
+      const matchTipo   = !this.filterTipoDocumento || c.tipoDocumento === this.filterTipoDocumento;
       const matchEstado = this.filterEstado === 'todos'
-        || (this.filterEstado === 'activos' && c.active)
+        || (this.filterEstado === 'activos'   && c.active)
         || (this.filterEstado === 'inactivos' && !c.active);
       return matchSearch && matchTipo && matchEstado;
     });
   }
 
   resetForm(): void {
-    this.form = { razonSocial: '', tipoDocumento: 'DNI', documento: '', contacto: '', telefono: '', email: '', segmento: '' };
+    this.form.reset({ tipoDocumento: 'DNI' });
     this.editingId = null;
   }
 
-  openCreate(): void {
-    this.resetForm();
-    this.open = true;
-  }
+  openCreate(): void { this.resetForm(); this.open = true; }
 
   openEdit(c: Customer): void {
     this.editingId = c.id;
-    this.form = {
-      razonSocial: c.razonSocial,
-      tipoDocumento: c.tipoDocumento,
-      documento: c.documento,
-      contacto: c.contacto ?? '',
-      telefono: c.telefono ?? '',
-      email: c.email ?? '',
-      segmento: c.segmento ?? '',
-    };
+    this.form.setValue({
+      razonSocial: c.razonSocial, tipoDocumento: c.tipoDocumento,
+      documento: c.documento, contacto: c.contacto ?? '',
+      telefono: c.telefono ?? '', email: c.email ?? '', segmento: c.segmento ?? '',
+    });
     this.open = true;
   }
 
   async submit(): Promise<void> {
+    if (this.form.invalid) { this.form.markAllAsTouched(); return; }
     this.saving = true;
     try {
+      const body = this.form.value;
       if (this.editingId) {
-        await this.api.put(`/customers/${this.editingId}`, this.form);
+        await this.api.put(`/customers/${this.editingId}`, body);
         this.toast.success('Cliente actualizado');
       } else {
-        await this.api.post('/customers', this.form);
+        await this.api.post('/customers', body);
         this.toast.success('Cliente creado');
       }
       this.open = false;
@@ -145,23 +153,16 @@ export class ClientesComponent implements OnInit {
       await this.api.patch(`/customers/${c.id}/toggle-active`);
       this.toast.success(c.active ? 'Cliente inhabilitado' : 'Cliente habilitado');
       await this.load();
-    } catch {
-      this.toast.error('Error al cambiar estado del cliente');
-    }
+    } catch { this.toast.error('Error al cambiar estado del cliente'); }
   }
 
   async openHistory(c: Customer): Promise<void> {
-    this.historyCustomer = c;
-    this.historyOrders = [];
-    this.historyOpen = true;
-    this.historyLoading = true;
+    this.historyCustomer = c; this.historyOrders = [];
+    this.historyOpen = true; this.historyLoading = true;
     try {
       this.historyOrders = await this.api.get<OrderResponse[]>(`/orders/by-customer/${c.documento}`);
-    } catch {
-      this.toast.error('Error al cargar el historial');
-    } finally {
-      this.historyLoading = false;
-    }
+    } catch { this.toast.error('Error al cargar el historial'); }
+    finally { this.historyLoading = false; }
   }
 
   historyTotal(): number {

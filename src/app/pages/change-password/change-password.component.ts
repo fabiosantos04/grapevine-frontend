@@ -1,14 +1,15 @@
 import { Component, inject } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ApiService } from '../../core/api.service';
 import { AuthService } from '../../core/auth.service';
 import { ToastService } from '../../core/toast.service';
+import { strongPasswordValidator, passwordMatchValidator } from '../../core/validators';
 
 @Component({
   selector: 'app-change-password',
   standalone: true,
-  imports: [FormsModule],
+  imports: [ReactiveFormsModule],
   templateUrl: './change-password.component.html',
   styleUrl: './change-password.component.css',
 })
@@ -17,37 +18,33 @@ export class ChangePasswordComponent {
   private readonly auth   = inject(AuthService);
   private readonly router = inject(Router);
   private readonly toast  = inject(ToastService);
+  private readonly fb     = inject(FormBuilder);
 
-  currentPassword = '';
-  newPassword     = '';
-  confirmPassword = '';
-  saving          = false;
-  error           = '';
+  saving = false;
+
+  form = this.fb.group({
+    currentPassword: ['', Validators.required],
+    newPassword:     ['', [Validators.required, strongPasswordValidator]],
+    confirmPassword: ['', Validators.required],
+  }, { validators: passwordMatchValidator });
+
+  get currentPassword() { return this.form.get('currentPassword')!; }
+  get newPassword()     { return this.form.get('newPassword')!;     }
+  get confirmPassword() { return this.form.get('confirmPassword')!; }
 
   async submit(): Promise<void> {
-    this.error = '';
-
-    if (this.newPassword !== this.confirmPassword) {
-      this.error = 'Las contraseñas no coinciden';
-      return;
-    }
-
-    if (this.newPassword.length < 6) {
-      this.error = 'La nueva contraseña debe tener al menos 6 caracteres';
-      return;
-    }
-
+    if (this.form.invalid) { this.form.markAllAsTouched(); return; }
     this.saving = true;
     try {
       await this.api.put('/profile/change-password', {
-        currentPassword: this.currentPassword,
-        newPassword:     this.newPassword,
+        currentPassword: this.currentPassword.value,
+        newPassword:     this.newPassword.value,
       });
       this.auth.updateUser({ mustChangePassword: false });
       this.toast.success('Contraseña cambiada correctamente');
       await this.router.navigateByUrl('/app/dashboard');
     } catch {
-      this.error = 'Contraseña temporal incorrecta';
+      this.form.setErrors({ wrongCurrent: true });
     } finally {
       this.saving = false;
     }

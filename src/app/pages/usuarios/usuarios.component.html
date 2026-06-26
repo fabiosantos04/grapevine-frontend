@@ -22,13 +22,20 @@
           <div>
             <label class="text-sm">Nombre completo</label>
             <input class="mt-1 w-full rounded-md border border-input px-3 py-2 text-sm"
-              [(ngModel)]="form.fullName" [ngModelOptions]="{ standalone: true }" />
+              [(ngModel)]="form.fullName" [ngModelOptions]="{ standalone: true }"
+              [class.border-destructive]="!form.fullName.trim()" />
+            @if (!form.fullName.trim()) {
+              <p class="mt-1 text-xs text-destructive">El nombre es obligatorio.</p>
+            }
           </div>
           @if (!editingId) {
             <div>
               <label class="text-sm">Correo electrónico</label>
               <input type="email" class="mt-1 w-full rounded-md border border-input px-3 py-2 text-sm"
                 [(ngModel)]="form.email" [ngModelOptions]="{ standalone: true }" />
+              @if (!editingId && !form.email.trim()) {
+                <p class="mt-1 text-xs text-destructive">El correo es obligatorio para crear un usuario.</p>
+              }
             </div>
           }
           <div>
@@ -54,7 +61,7 @@
             (click)="open = false">Cancelar</button>
           <button type="button"
             class="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-50"
-            [disabled]="saving || !form.fullName || (!editingId && !form.email)"
+            [disabled]="saving || !form.fullName.trim() || (!editingId && !form.email.trim())"
             (click)="submit()">
             {{ saving ? 'Guardando…' : (editingId ? 'Actualizar' : 'Crear usuario') }}
           </button>
