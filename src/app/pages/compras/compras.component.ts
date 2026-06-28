@@ -24,6 +24,7 @@ type PurchaseResponse = {
   status: PurchaseStatus;
   total: number;
   createdAt: string;
+  paymentProofUrl: string | null;
   items: PurchaseItemResponse[];
 };
 
@@ -79,6 +80,13 @@ export class ComprasComponent implements OnInit {
   editWarehouseId           = '' as number | '';
   editSelectedProductId     = '';
   savingEdit                = false;
+
+  payOpen = false;
+  paySaving = false;
+  payingPurchase: PurchaseResponse | null = null;
+  paymentProofUrl = '';
+  paymentProofPreview: string | null = null;
+  previewImage: string | null = null;
 
   readonly statusEntries = Object.entries(STATUS_LABELS).map(([key, label]) => ({
     key:   key as PurchaseStatus,
@@ -254,6 +262,44 @@ export class ComprasComponent implements OnInit {
       this.toast.success('Estado actualizado');
     } catch (e: any) {
       this.toast.error(e?.error?.message ?? 'Error al actualizar estado');
+    }
+  }
+
+  openPay(r: PurchaseResponse): void {
+    this.payingPurchase = r;
+    this.paymentProofUrl = '';
+    this.paymentProofPreview = null;
+    this.payOpen = true;
+  }
+
+  onProofChange(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      this.paymentProofPreview = reader.result as string;
+      this.paymentProofUrl = reader.result as string;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  async confirmPay(): Promise<void> {
+    if (!this.payingPurchase || !this.paymentProofUrl) return;
+    this.paySaving = true;
+    try {
+      const updated = await this.api.patch<PurchaseResponse>(
+        `/purchases/${this.payingPurchase.id}/pay`,
+        { paymentProofUrl: this.paymentProofUrl }
+      );
+      this.rows = this.rows.map(r => r.id === updated.id ? updated : r);
+      this.toast.success('Compra pagada');
+      this.payOpen = false;
+      this.payingPurchase = null;
+    } catch (e: any) {
+      this.toast.error(e?.error?.message ?? 'Error al pagar la compra');
+    } finally {
+      this.paySaving = false;
     }
   }
 }

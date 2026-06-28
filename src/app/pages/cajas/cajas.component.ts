@@ -13,6 +13,8 @@ type CashMovement = {
   type: 'INCOME' | 'EXPENSE';
   description: string;
   amount: number;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  affectsBalance: boolean;
   createdAt: string;
 };
 
@@ -44,7 +46,6 @@ export class CajasComponent implements OnInit {
   saving           = false;
   openingAmount    = 0;
   depositAccountId = '' as number | '';
-  movForm = { type: 'INCOME' as 'INCOME' | 'EXPENSE', description: '', amount: 0 };
 
   async ngOnInit(): Promise<void> {
     await Promise.all([this.load(), this.loadBankAccounts()]);
@@ -96,20 +97,6 @@ export class CajasComponent implements OnInit {
       await this.load();
     } catch {
       this.toast.error('Error al cerrar caja');
-    } finally {
-      this.saving = false;
-    }
-  }
-
-  async addMovement(): Promise<void> {
-    this.saving = true;
-    try {
-      await this.api.post('/cash/movement', this.movForm);
-      this.toast.success('Movimiento registrado');
-      this.movForm = { type: 'INCOME', description: '', amount: 0 };
-      await this.load();
-    } catch {
-      this.toast.error('Error al registrar movimiento');
     } finally {
       this.saving = false;
     }
