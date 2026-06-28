@@ -4,11 +4,12 @@ import { firstValueFrom } from 'rxjs';
 import type { AppRole } from './app-role';
 import { mapBackendRole } from './app-role';
 import type { LoginRequest, LoginResponse, TokenRefreshRequest } from './auth.model';
+import { environment } from '../../environments/environment';
 
 const TOKEN_KEY         = 'erp-token';
 const REFRESH_TOKEN_KEY = 'erp-refresh-token';
 const USER_KEY          = 'erp-user';
-const API               = 'http://localhost:8080/api';
+const API = `${environment.apiUrl}/api`;
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
