@@ -1,8 +1,9 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
+import { environment } from '../../environments/environment';
 
-const BASE = 'http://localhost:8080/api';
+const BASE = `${environment.apiUrl}/api`;
 
 @Injectable({ providedIn: 'root' })
 export class ApiService {
