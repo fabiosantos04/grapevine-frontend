@@ -6,17 +6,18 @@
     <div slot="actions">
       <button type="button"
         class="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground"
-        (click)="open = true; resetForm()">
+        (click)="openCreate()">
         + Nueva guía
       </button>
     </div>
   </app-page-header>
 
-  <!-- Modal nueva guía -->
   @if (open) {
     <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" (click.self)="open = false">
       <div class="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg border border-border bg-card p-6 shadow-lg">
-        <h2 class="font-display text-lg font-semibold">Nueva guía de movimiento</h2>
+        <h2 class="font-display text-lg font-semibold">
+          {{ editingId ? 'Editar guía de movimiento' : 'Nueva guía de movimiento' }}
+        </h2>
         <div class="mt-4 space-y-3">
           <div>
             <label class="text-sm">Tipo</label>
@@ -108,14 +109,13 @@
             class="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-50"
             [disabled]="saving || !items.length"
             (click)="submit()">
-            {{ saving ? 'Guardando…' : 'Crear guía' }}
+            {{ saving ? 'Guardando…' : (editingId ? 'Actualizar guía' : 'Crear guía') }}
           </button>
         </div>
       </div>
     </div>
   }
 
-  <!-- Modal incidencia -->
   @if (incidentOpen) {
     <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" (click.self)="incidentOpen = false">
       <div class="w-full max-w-md rounded-lg border border-border bg-card p-6 shadow-lg">
@@ -160,7 +160,6 @@
     </div>
   }
 
-  <!-- Lista de guías -->
   <div class="space-y-4">
     @if (!rows.length) {
       <div class="rounded-xl border border-border/60 bg-card p-12 text-center text-muted-foreground">
@@ -171,7 +170,6 @@
         <div class="rounded-xl border border-border/60 bg-card p-5"
           [class]="r.status === 'INCIDENCIA' ? 'border-destructive/40' : ''">
 
-          <!-- Cabecera -->
           <div class="flex flex-wrap items-start justify-between gap-3">
             <div>
               <div class="flex items-center gap-2">
@@ -198,7 +196,6 @@
             </div>
           </div>
 
-          <!-- Timeline -->
           @if (r.status !== 'CANCELADO') {
             <div class="mt-4 flex items-center gap-0">
               @for (step of TIMELINE_STEPS; track step; let last = $last) {
@@ -237,7 +234,6 @@
             </div>
           }
 
-          <!-- Incidencia activa -->
           @if (r.status === 'INCIDENCIA') {
             <div class="mt-3 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm">
               <p class="font-semibold text-destructive">⚠ Incidencia activa</p>
@@ -252,7 +248,6 @@
             </div>
           }
 
-          <!-- Productos -->
           <div class="mt-3 flex flex-wrap gap-1">
             @for (it of r.items; track it.productName) {
               <span class="rounded-full border border-border/60 bg-muted/30 px-2 py-0.5 text-xs">
@@ -261,9 +256,14 @@
             }
           </div>
 
-          <!-- Botones de acción -->
           <div class="mt-4 flex flex-wrap gap-2">
             @if (r.status === 'BORRADOR') {
+              <button type="button"
+                class="rounded-md border border-border px-3 py-1.5 text-xs hover:bg-muted/40"
+                (click)="openEdit(r)">Editar</button>
+              <button type="button"
+                class="rounded-md bg-destructive/20 px-3 py-1.5 text-xs text-destructive hover:bg-destructive/30"
+                (click)="deleteGuide(r)">Eliminar</button>
               <button type="button"
                 class="rounded-md bg-yellow-500/20 px-3 py-1.5 text-xs text-yellow-600 hover:bg-yellow-500/30"
                 (click)="advance(r.id, 'prepare')">Iniciar preparación</button>

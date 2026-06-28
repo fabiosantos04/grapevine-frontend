@@ -6,7 +6,7 @@ import { PageHeaderComponent } from '../../layout/page-header.component';
 import { ToastService } from '../../core/toast.service';
 import { LoadingSpinnerComponent } from '../../shared/loading-spinner/loading-spinner.component';
 
-type BankAccount = { id: number; bank: string; accountNumber: string; balance: number; currency: string };
+type BankAccount = { id: number; accountName: string | null; bank: string; accountNumber: string; balance: number; currency: string; active: boolean };
 
 type CashMovement = {
   id: number;
@@ -60,7 +60,14 @@ export class CajasComponent implements OnInit {
   }
 
   async loadBankAccounts(): Promise<void> {
-    try { this.bankAccounts = await this.api.get<BankAccount[]>('/bank-accounts'); } catch {}
+    try {
+      const all = await this.api.get<BankAccount[]>('/bank-accounts');
+      this.bankAccounts = all.filter(b => b.active);
+    } catch {}
+  }
+
+  get canClose(): boolean {
+    return !this.saving && !!this.depositAccountId;
   }
 
   async openCash(): Promise<void> {
@@ -77,13 +84,14 @@ export class CajasComponent implements OnInit {
   }
 
   async closeCash(): Promise<void> {
+    if (!this.canClose) return;
     this.saving = true;
     try {
       await this.api.post('/cash/close', {
         closingAmount: this.caja?.currentBalance,
-        bankAccountId: this.depositAccountId ? Number(this.depositAccountId) : null,
+        bankAccountId: Number(this.depositAccountId),
       });
-      this.toast.success('Caja cerrada');
+      this.toast.success('Caja cerrada y depósito registrado');
       this.depositAccountId = '';
       await this.load();
     } catch {

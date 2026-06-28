@@ -28,13 +28,27 @@
             </select>
           </div>
           <div>
+            <label class="text-sm">Almacén de destino <span class="text-destructive">*</span></label>
+            <select class="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              [(ngModel)]="warehouseId" [ngModelOptions]="{ standalone: true }">
+              <option value="">Selecciona almacén</option>
+              @for (w of warehouses; track w.id) {
+                <option [value]="w.id">{{ w.name }}</option>
+              }
+            </select>
+            <p class="mt-1 text-xs text-muted-foreground">
+              Almacén donde llegarán los productos al recibirse la compra.
+            </p>
+          </div>
+          <div>
             <label class="text-sm">Cuenta bancaria de pago <span class="text-muted-foreground text-xs">(opcional)</span></label>
             <select class="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
               [(ngModel)]="bankAccountId" [ngModelOptions]="{ standalone: true }">
               <option value="">Sin cuenta asignada</option>
               @for (b of bankAccounts; track b.id) {
                 <option [value]="b.id">
-                  {{ b.bank }} - {{ b.accountNumber }} ({{ b.currency === 'PEN' ? 'S/' : '$' }} {{ b.balance | number: '1.2-2' }})
+                  {{ b.accountName ? b.accountName + ' — ' : '' }}{{ b.bank }} - {{ b.accountNumber }}
+                  ({{ b.currency === 'PEN' ? 'S/' : '$' }} {{ b.balance | number: '1.2-2' }})
                 </option>
               }
             </select>
@@ -123,13 +137,24 @@
             </select>
           </div>
           <div>
+            <label class="text-sm">Almacén de destino <span class="text-destructive">*</span></label>
+            <select class="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              [(ngModel)]="editWarehouseId" [ngModelOptions]="{ standalone: true }">
+              <option value="">Selecciona almacén</option>
+              @for (w of warehouses; track w.id) {
+                <option [value]="w.id">{{ w.name }}</option>
+              }
+            </select>
+          </div>
+          <div>
             <label class="text-sm">Cuenta bancaria <span class="text-muted-foreground text-xs">(opcional)</span></label>
             <select class="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
               [(ngModel)]="editBankAccountId" [ngModelOptions]="{ standalone: true }">
               <option value="">Sin cuenta asignada</option>
               @for (b of bankAccounts; track b.id) {
                 <option [value]="b.id">
-                  {{ b.bank }} - {{ b.accountNumber }} ({{ b.currency === 'PEN' ? 'S/' : '$' }} {{ b.balance | number: '1.2-2' }})
+                  {{ b.accountName ? b.accountName + ' — ' : '' }}{{ b.bank }} - {{ b.accountNumber }}
+                  ({{ b.currency === 'PEN' ? 'S/' : '$' }} {{ b.balance | number: '1.2-2' }})
                 </option>
               }
             </select>
@@ -216,6 +241,7 @@
         <tr>
           <th class="px-4 py-3 text-left">Fecha</th>
           <th class="px-4 py-3 text-left">Proveedor</th>
+          <th class="px-4 py-3 text-left">Almacén</th>
           <th class="px-4 py-3 text-left">Cuenta</th>
           <th class="px-4 py-3 text-left">Productos</th>
           <th class="px-4 py-3 text-right">Total</th>
@@ -226,13 +252,14 @@
       <tbody>
         @if (!rows.length) {
           <tr>
-            <td colspan="7" class="px-4 py-12 text-center text-muted-foreground">Sin órdenes de compra</td>
+            <td colspan="8" class="px-4 py-12 text-center text-muted-foreground">Sin órdenes de compra</td>
           </tr>
         } @else {
           @for (r of rows; track r.id) {
             <tr class="border-t border-border/40">
               <td class="px-4 py-3 text-muted-foreground">{{ r.createdAt | date: 'dd/MM/yyyy' }}</td>
               <td class="px-4 py-3 font-medium">{{ r.supplierName }}</td>
+              <td class="px-4 py-3 text-muted-foreground text-xs">{{ r.warehouseName }}</td>
               <td class="px-4 py-3 text-muted-foreground text-xs">{{ r.bankAccountName }}</td>
               <td class="px-4 py-3 text-muted-foreground">
                 @for (it of r.items; track it.productName) {

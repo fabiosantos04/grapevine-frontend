@@ -6,16 +6,40 @@
     <div slot="actions">
       <button type="button"
         class="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground"
-        (click)="open = true; resetForm()">
+        (click)="openCreate()">
         + Nuevo producto
       </button>
     </div>
   </app-page-header>
 
+  <div class="mb-4 flex flex-wrap items-center gap-3">
+    <input
+      class="flex-1 min-w-[200px] rounded-md border border-input bg-background px-3 py-2 text-sm"
+      placeholder="Buscar por nombre o descripción…"
+      [(ngModel)]="search" [ngModelOptions]="{ standalone: true }" />
+
+    <select class="rounded-md border border-input bg-background px-3 py-2 text-sm"
+      [(ngModel)]="filterCategory" [ngModelOptions]="{ standalone: true }">
+      <option value="">Todas las categorías</option>
+      @for (c of CATEGORIES; track c.value) {
+        <option [value]="c.value">{{ c.label }}</option>
+      }
+    </select>
+
+    <select class="rounded-md border border-input bg-background px-3 py-2 text-sm"
+      [(ngModel)]="filterEstado" [ngModelOptions]="{ standalone: true }">
+      <option value="todos">Todos los estados</option>
+      <option value="activos">Solo activos</option>
+      <option value="inactivos">Solo inactivos</option>
+    </select>
+  </div>
+
   @if (open) {
     <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" (click.self)="open = false">
       <div class="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-lg border border-border bg-card p-6 shadow-lg">
-        <h2 class="font-display text-lg font-semibold">Nuevo producto</h2>
+        <h2 class="font-display text-lg font-semibold">
+          {{ editingId ? 'Editar producto' : 'Nuevo producto' }}
+        </h2>
         <div class="mt-4 space-y-3">
           <div>
             <label class="text-sm">Nombre</label>
@@ -45,12 +69,14 @@
             </div>
           </div>
           <div class="grid grid-cols-2 gap-3">
-            <div>
-              <label class="text-sm">Stock inicial</label>
-              <input type="number" min="0"
-                class="mt-1 w-full rounded-md border border-input px-3 py-2 text-sm"
-                [(ngModel)]="form.stock" [ngModelOptions]="{ standalone: true }" />
-            </div>
+            @if (!editingId) {
+              <div>
+                <label class="text-sm">Stock inicial</label>
+                <input type="number" min="0"
+                  class="mt-1 w-full rounded-md border border-input px-3 py-2 text-sm"
+                  [(ngModel)]="form.stock" [ngModelOptions]="{ standalone: true }" />
+              </div>
+            }
             <div>
               <label class="text-sm">Volumen (ml)</label>
               <input type="number" min="0"
@@ -60,17 +86,22 @@
           </div>
           <div class="grid grid-cols-2 gap-3">
             <div>
-              <label class="text-sm">Año cosecha</label>
-              <input type="number" min="1900" max="2099"
+              <label class="text-sm">Año</label>
+              <input type="number" min="1900"
                 class="mt-1 w-full rounded-md border border-input px-3 py-2 text-sm"
                 [(ngModel)]="form.year" [ngModelOptions]="{ standalone: true }" />
             </div>
             <div>
-              <label class="text-sm">URL imagen</label>
+              <label class="text-sm">URL de imagen</label>
               <input class="mt-1 w-full rounded-md border border-input px-3 py-2 text-sm"
-                [(ngModel)]="form.imageUrl" [ngModelOptions]="{ standalone: true }" placeholder="https://..." />
+                [(ngModel)]="form.imageUrl" [ngModelOptions]="{ standalone: true }" />
             </div>
           </div>
+          @if (editingId) {
+            <p class="text-xs text-muted-foreground">
+              El stock se gestiona desde el módulo de Inventario, no aquí.
+            </p>
+          }
         </div>
         <div class="mt-6 flex justify-end gap-2">
           <button type="button"
@@ -78,9 +109,9 @@
             (click)="open = false">Cancelar</button>
           <button type="button"
             class="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-50"
-            [disabled]="saving || !form.name || !form.price"
+            [disabled]="saving || !form.name"
             (click)="submit()">
-            {{ saving ? 'Guardando…' : 'Guardar' }}
+            {{ saving ? 'Guardando…' : (editingId ? 'Actualizar' : 'Guardar') }}
           </button>
         </div>
       </div>
@@ -98,10 +129,11 @@
           <th class="p-3 text-right">Precio</th>
           <th class="p-3 text-right">Stock</th>
           <th class="p-3">Estado</th>
+          <th class="p-3">Acciones</th>
         </tr>
       </thead>
       <tbody>
-        @for (p of list; track p.id) {
+        @for (p of filtered; track p.id) {
           <tr class="border-t border-border/60" [class]="p.stock <= 5 ? 'bg-destructive/5' : ''">
             <td class="p-3 font-medium">{{ p.name }}</td>
             <td class="p-3 text-muted-foreground">{{ categoryLabel(p.category) }}</td>
@@ -118,11 +150,28 @@
                 {{ p.active ? 'Activo' : 'Inactivo' }}
               </span>
             </td>
+            <td class="p-3">
+              <div class="flex flex-wrap gap-1">
+                <button type="button"
+                  class="rounded-md border border-border px-2 py-1 text-xs hover:bg-muted/40"
+                  (click)="openEdit(p)">Editar</button>
+                <button type="button"
+                  class="rounded-md px-2 py-1 text-xs"
+                  [class]="p.active
+                    ? 'bg-destructive/20 text-destructive hover:bg-destructive/30'
+                    : 'bg-accent/20 text-accent hover:bg-accent/30'"
+                  (click)="toggleActive(p)">
+                  {{ p.active ? 'Inhabilitar' : 'Habilitar' }}
+                </button>
+              </div>
+            </td>
           </tr>
         }
-        @if (!list.length) {
+        @if (!filtered.length) {
           <tr>
-            <td colspan="7" class="p-6 text-center text-muted-foreground">Sin productos registrados.</td>
+            <td colspan="8" class="p-6 text-center text-muted-foreground">
+              {{ list.length ? 'Sin resultados para los filtros aplicados.' : 'Sin productos registrados.' }}
+            </td>
           </tr>
         }
       </tbody>

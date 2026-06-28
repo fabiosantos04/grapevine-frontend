@@ -11,6 +11,7 @@ type Currency    = 'PEN' | 'USD';
 
 type BankAccount = {
   id: number;
+  accountName: string | null;
   bank: string;
   accountNumber: string;
   type: AccountType;
@@ -32,10 +33,18 @@ export class CuentasComponent implements OnInit {
   loading = true;
 
   list: BankAccount[] = [];
-  open   = false;
-  saving = false;
-  form: { bank: string; accountNumber: string; type: AccountType; currency: Currency; balance: number } = {
-    bank: '', accountNumber: '', type: 'AHORRO', currency: 'PEN', balance: 0,
+  open      = false;
+  saving    = false;
+  editingId: number | null = null;
+
+  search = '';
+  filterBank = '';
+  filterType: AccountType | '' = '';
+  filterCurrency: Currency | '' = '';
+  filterEstado: 'todos' | 'activas' | 'inactivas' = 'todos';
+
+  form: { accountName: string; bank: string; accountNumber: string; type: AccountType; currency: Currency; balance: number } = {
+    accountName: '', bank: '', accountNumber: '', type: 'AHORRO', currency: 'PEN', balance: 0,
   };
 
   async ngOnInit(): Promise<void> {
@@ -51,20 +60,71 @@ export class CuentasComponent implements OnInit {
     }
   }
 
+  get banks(): string[] {
+    return Array.from(new Set(this.list.map(a => a.bank))).sort();
+  }
+
+  get filtered(): BankAccount[] {
+    const term = this.search.trim().toLowerCase();
+    return this.list.filter(a => {
+      const matchSearch = !term
+        || (a.accountName ?? '').toLowerCase().includes(term)
+        || a.bank.toLowerCase().includes(term)
+        || a.accountNumber.toLowerCase().includes(term);
+      const matchBank = !this.filterBank || a.bank === this.filterBank;
+      const matchType = !this.filterType || a.type === this.filterType;
+      const matchCurrency = !this.filterCurrency || a.currency === this.filterCurrency;
+      const matchEstado = this.filterEstado === 'todos'
+        || (this.filterEstado === 'activas' && a.active)
+        || (this.filterEstado === 'inactivas' && !a.active);
+      return matchSearch && matchBank && matchType && matchCurrency && matchEstado;
+    });
+  }
+
   resetForm(): void {
-    this.form = { bank: '', accountNumber: '', type: 'AHORRO', currency: 'PEN', balance: 0 };
+    this.form = { accountName: '', bank: '', accountNumber: '', type: 'AHORRO', currency: 'PEN', balance: 0 };
+    this.editingId = null;
+  }
+
+  openCreate(): void {
+    this.resetForm();
+    this.open = true;
+  }
+
+  openEdit(a: BankAccount): void {
+    this.editingId = a.id;
+    this.form = {
+      accountName: a.accountName ?? '',
+      bank: a.bank,
+      accountNumber: a.accountNumber,
+      type: a.type,
+      currency: a.currency,
+      balance: a.balance,
+    };
+    this.open = true;
   }
 
   async submit(): Promise<void> {
     this.saving = true;
     try {
-      await this.api.post('/bank-accounts', this.form);
-      this.toast.success('Cuenta creada');
+      if (this.editingId) {
+        await this.api.put(`/bank-accounts/${this.editingId}`, {
+          accountName: this.form.accountName,
+          bank: this.form.bank,
+          accountNumber: this.form.accountNumber,
+          type: this.form.type,
+          currency: this.form.currency,
+        });
+        this.toast.success('Cuenta actualizada');
+      } else {
+        await this.api.post('/bank-accounts', this.form);
+        this.toast.success('Cuenta creada');
+      }
       this.open = false;
       this.resetForm();
       await this.load();
     } catch {
-      this.toast.error('Error al crear cuenta');
+      this.toast.error(this.editingId ? 'Error al actualizar cuenta' : 'Error al crear cuenta');
     } finally {
       this.saving = false;
     }

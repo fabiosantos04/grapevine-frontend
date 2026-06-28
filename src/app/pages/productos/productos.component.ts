@@ -41,8 +41,14 @@ export class ProductosComponent implements OnInit {
   loading = true;
 
   list: Product[] = [];
-  open   = false;
-  saving = false;
+  open      = false;
+  saving    = false;
+  editingId: number | null = null;
+
+  search = '';
+  filterCategory = '';
+  filterEstado: 'todos' | 'activos' | 'inactivos' = 'todos';
+
   form = {
     name: '', description: '', price: 0, stock: 0,
     category: 'VINO_TINTO', volume: null as number | null,
@@ -66,25 +72,83 @@ export class ProductosComponent implements OnInit {
     return CATEGORIES.find((c) => c.value === value)?.label ?? value;
   }
 
+  get filtered(): Product[] {
+    const term = this.search.trim().toLowerCase();
+    return this.list.filter(p => {
+      const matchSearch = !term
+        || p.name.toLowerCase().includes(term)
+        || (p.description ?? '').toLowerCase().includes(term);
+      const matchCategory = !this.filterCategory || p.category === this.filterCategory;
+      const matchEstado = this.filterEstado === 'todos'
+        || (this.filterEstado === 'activos' && p.active)
+        || (this.filterEstado === 'inactivos' && !p.active);
+      return matchSearch && matchCategory && matchEstado;
+    });
+  }
+
   resetForm(): void {
     this.form = {
       name: '', description: '', price: 0, stock: 0,
       category: 'VINO_TINTO', volume: null, year: null, imageUrl: '',
     };
+    this.editingId = null;
+  }
+
+  openCreate(): void {
+    this.resetForm();
+    this.open = true;
+  }
+
+  openEdit(p: Product): void {
+    this.editingId = p.id;
+    this.form = {
+      name: p.name,
+      description: p.description ?? '',
+      price: p.price,
+      stock: p.stock,
+      category: p.category,
+      volume: p.volume,
+      year: p.year,
+      imageUrl: p.imageUrl ?? '',
+    };
+    this.open = true;
   }
 
   async submit(): Promise<void> {
     this.saving = true;
     try {
-      await this.api.post('/products', this.form);
-      this.toast.success('Producto creado');
+      if (this.editingId) {
+        await this.api.put(`/products/${this.editingId}`, {
+          name: this.form.name,
+          description: this.form.description,
+          price: this.form.price,
+          category: this.form.category,
+          volume: this.form.volume,
+          year: this.form.year,
+          imageUrl: this.form.imageUrl,
+        });
+        this.toast.success('Producto actualizado');
+      } else {
+        await this.api.post('/products', this.form);
+        this.toast.success('Producto creado');
+      }
       this.open = false;
       this.resetForm();
       await this.load();
     } catch {
-      this.toast.error('Error al crear producto');
+      this.toast.error(this.editingId ? 'Error al actualizar producto' : 'Error al crear producto');
     } finally {
       this.saving = false;
+    }
+  }
+
+  async toggleActive(p: Product): Promise<void> {
+    try {
+      const updated = await this.api.patch<Product>(`/products/${p.id}/toggle-active`);
+      this.list = this.list.map(x => x.id === updated.id ? updated : x);
+      this.toast.success(updated.active ? 'Producto habilitado' : 'Producto inhabilitado');
+    } catch {
+      this.toast.error('Error al cambiar estado del producto');
     }
   }
 }

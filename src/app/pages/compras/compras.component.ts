@@ -10,7 +10,8 @@ import { LoadingSpinnerComponent } from '../../shared/loading-spinner/loading-sp
 type PurchaseStatus = 'DRAFT' | 'SENT' | 'CONFIRMED' | 'RECEIVED' | 'PAID' | 'CANCELLED';
 type Supplier       = { id: number; name: string };
 type Product        = { id: number; name: string; price: number };
-type BankAccount    = { id: number; bank: string; accountNumber: string; balance: number; currency: string };
+type BankAccount    = { id: number; accountName: string | null; bank: string; accountNumber: string; balance: number; currency: string };
+type Warehouse      = { id: number; name: string; active: boolean };
 type PurchaseItem   = { productId: number; productName: string; quantity: number; price: number };
 
 type PurchaseItemResponse = { productName: string; quantity: number; price: number; subtotal: number };
@@ -19,6 +20,7 @@ type PurchaseResponse = {
   id: number;
   supplierName: string;
   bankAccountName: string;
+  warehouseName: string;
   status: PurchaseStatus;
   total: number;
   createdAt: string;
@@ -60,11 +62,13 @@ export class ComprasComponent implements OnInit {
   suppliers: Supplier[]       = [];
   products: Product[]         = [];
   bankAccounts: BankAccount[] = [];
+  warehouses: Warehouse[]     = [];
   items: PurchaseItem[]       = [];
   open              = false;
   saving            = false;
   supplierId        = '';
   bankAccountId     = '' as number | '';
+  warehouseId       = '' as number | '';
   selectedProductId = '';
   prefillRequestId: number | null = null;
 
@@ -72,6 +76,7 @@ export class ComprasComponent implements OnInit {
   editItems: PurchaseItem[] = [];
   editSupplierId            = '';
   editBankAccountId         = '' as number | '';
+  editWarehouseId           = '' as number | '';
   editSelectedProductId     = '';
   savingEdit                = false;
 
@@ -88,6 +93,7 @@ export class ComprasComponent implements OnInit {
         this.loadProducts(),
         this.loadPurchases(),
         this.loadBankAccounts(),
+        this.loadWarehouses(),
       ]);
 
       const prefill = history.state?.prefill;
@@ -130,6 +136,13 @@ export class ComprasComponent implements OnInit {
     try { this.bankAccounts = await this.api.get<BankAccount[]>('/bank-accounts'); } catch {}
   }
 
+  async loadWarehouses(): Promise<void> {
+    try {
+      const all = await this.api.get<Warehouse[]>('/warehouses');
+      this.warehouses = all.filter(w => w.active);
+    } catch {}
+  }
+
   addItem(): void {
     const p = this.products.find(x => String(x.id) === this.selectedProductId);
     if (!p) return;
@@ -153,6 +166,7 @@ export class ComprasComponent implements OnInit {
   resetForm(): void {
     this.supplierId        = '';
     this.bankAccountId     = '';
+    this.warehouseId       = '';
     this.selectedProductId = '';
     this.items             = [];
     this.prefillRequestId  = null;
@@ -164,6 +178,7 @@ export class ComprasComponent implements OnInit {
       const created = await this.api.post<PurchaseResponse>('/purchases', {
         supplierId:    Number(this.supplierId),
         bankAccountId: this.bankAccountId ? Number(this.bankAccountId) : null,
+        warehouseId:   this.warehouseId ? Number(this.warehouseId) : null,
         items: this.items.map(i => ({ productId: i.productId, quantity: i.quantity, price: i.price })),
       });
       this.rows = [created, ...this.rows];
@@ -187,6 +202,7 @@ export class ComprasComponent implements OnInit {
     this.editingPurchase   = r;
     this.editSupplierId    = String(this.suppliers.find(s => s.name === r.supplierName)?.id ?? '');
     this.editBankAccountId = '';
+    this.editWarehouseId   = this.warehouses.find(w => w.name === r.warehouseName)?.id ?? '';
     this.editItems = r.items.map(i => {
       const p = this.products.find(p => p.name === i.productName);
       return { productId: p?.id ?? 0, productName: i.productName, quantity: i.quantity, price: Number(i.price) };
@@ -218,6 +234,7 @@ export class ComprasComponent implements OnInit {
       const updated = await this.api.put<PurchaseResponse>(`/purchases/${this.editingPurchase.id}`, {
         supplierId:    Number(this.editSupplierId),
         bankAccountId: this.editBankAccountId ? Number(this.editBankAccountId) : null,
+        warehouseId:   this.editWarehouseId ? Number(this.editWarehouseId) : null,
         items: this.editItems.map(i => ({ productId: i.productId, quantity: i.quantity, price: i.price })),
       });
       this.rows = this.rows.map(r => r.id === updated.id ? updated : r);
@@ -235,8 +252,8 @@ export class ComprasComponent implements OnInit {
       const updated = await this.api.patch<PurchaseResponse>(`/purchases/${id}/${action}`);
       this.rows = this.rows.map(r => r.id === id ? updated : r);
       this.toast.success('Estado actualizado');
-    } catch {
-      this.toast.error('Error al actualizar estado');
+    } catch (e: any) {
+      this.toast.error(e?.error?.message ?? 'Error al actualizar estado');
     }
   }
 }

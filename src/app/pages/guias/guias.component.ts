@@ -73,6 +73,7 @@ export class GuiasComponent implements OnInit {
 
   open              = false;
   saving            = false;
+  editingId: number | null = null;
   selectedProductId = '';
 
   selectedGuide: TransferGuideResponse | null = null;
@@ -141,26 +142,66 @@ export class GuiasComponent implements OnInit {
     this.form = { type: 'TRASLADO', originWarehouseId: '', destinationWarehouseId: '', description: '' };
     this.items = [];
     this.selectedProductId = '';
+    this.editingId = null;
+  }
+
+  openCreate(): void {
+    this.resetForm();
+    this.open = true;
+  }
+
+  openEdit(guide: TransferGuideResponse): void {
+    this.editingId = guide.id;
+    this.form = {
+      type: guide.type,
+      originWarehouseId: guide.originWarehouseId ?? '',
+      destinationWarehouseId: guide.destinationWarehouseId ?? '',
+      description: guide.description ?? '',
+    };
+    this.items = guide.items.map(i => ({
+      productId: i.productId,
+      productName: i.productName,
+      quantity: i.quantity,
+    }));
+    this.open = true;
   }
 
   async submit(): Promise<void> {
     this.saving = true;
     try {
-      await this.api.post('/transfer-guides', {
+      const body = {
         type:                   this.form.type,
         originWarehouseId:      this.form.originWarehouseId      ? Number(this.form.originWarehouseId)      : null,
         destinationWarehouseId: this.form.destinationWarehouseId ? Number(this.form.destinationWarehouseId) : null,
         description:            this.form.description,
         items:                  this.items.map(i => ({ productId: i.productId, quantity: i.quantity })),
-      });
-      this.toast.success('Guía creada');
+      };
+
+      if (this.editingId) {
+        await this.api.put(`/transfer-guides/${this.editingId}`, body);
+        this.toast.success('Guía actualizada');
+      } else {
+        await this.api.post('/transfer-guides', body);
+        this.toast.success('Guía creada');
+      }
+
       this.open = false;
       this.resetForm();
       await this.load();
     } catch {
-      this.toast.error('Error al crear guía');
+      this.toast.error(this.editingId ? 'Error al actualizar guía' : 'Error al crear guía');
     } finally {
       this.saving = false;
+    }
+  }
+
+  async deleteGuide(guide: TransferGuideResponse): Promise<void> {
+    try {
+      await this.api.delete(`/transfer-guides/${guide.id}`);
+      this.rows = this.rows.filter(r => r.id !== guide.id);
+      this.toast.success('Guía eliminada');
+    } catch {
+      this.toast.error('Error al eliminar guía');
     }
   }
 

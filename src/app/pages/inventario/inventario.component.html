@@ -66,33 +66,73 @@
     </div>
   }
 
-  <div class="mb-4 flex flex-wrap items-center gap-3">
-    <div class="flex items-center gap-2">
-      <label class="text-sm text-muted-foreground">Filtrar por almacén:</label>
-      <select class="rounded-md border border-input bg-background px-3 py-2 text-sm"
-        [(ngModel)]="filterWarehouseId" [ngModelOptions]="{ standalone: true }"
-        (ngModelChange)="applyStockFilter()">
-        <option value="">Todos los almacenes</option>
-        @for (w of warehouses; track w.id) {
-          <option [value]="w.id">{{ w.name }}</option>
-        }
-      </select>
-    </div>
+  <div class="mb-4 rounded-xl border border-border/60 bg-card p-4">
+    <div class="flex flex-wrap items-end gap-3">
+      <div class="flex items-center gap-2">
+        <label class="text-sm text-muted-foreground">Almacén:</label>
+        <select class="rounded-md border border-input bg-background px-3 py-2 text-sm"
+          [(ngModel)]="filterWarehouseId" [ngModelOptions]="{ standalone: true }"
+          (ngModelChange)="applyStockFilter()">
+          <option value="">Todos los almacenes</option>
+          @for (w of warehouses; track w.id) {
+            <option [value]="w.id">{{ w.name }}</option>
+          }
+        </select>
+      </div>
 
-    <div class="ml-auto flex rounded-lg border border-border overflow-hidden">
-      <button type="button"
-        class="px-4 py-2 text-sm transition-colors"
-        [class]="activeTab === 'stock' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted/40'"
-        (click)="activeTab = 'stock'">
-        Stock actual
-      </button>
-      <button type="button"
-        class="px-4 py-2 text-sm transition-colors border-l border-border"
-        [class]="activeTab === 'ajustes' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted/40'"
-        (click)="activeTab = 'ajustes'">
-        Historial de ajustes
-      </button>
+      @if (activeTab === 'stock') {
+        <input
+          class="min-w-[180px] rounded-md border border-input bg-background px-3 py-2 text-sm"
+          placeholder="Buscar producto…"
+          [(ngModel)]="search" [ngModelOptions]="{ standalone: true }" />
+
+        <select class="rounded-md border border-input bg-background px-3 py-2 text-sm"
+          [(ngModel)]="filterCategory" [ngModelOptions]="{ standalone: true }">
+          <option value="">Todas las categorías</option>
+          @for (c of categories; track c) {
+            <option [value]="c">{{ c }}</option>
+          }
+        </select>
+
+        <div class="flex items-center gap-1 text-sm">
+          <label class="text-muted-foreground">Stock mín.</label>
+          <input type="number" min="0"
+            class="w-20 rounded-md border border-input bg-background px-2 py-2"
+            [(ngModel)]="filterMinStock" [ngModelOptions]="{ standalone: true }" />
+          <label class="text-muted-foreground">Stock máx.</label>
+          <input type="number" min="0"
+            class="w-20 rounded-md border border-input bg-background px-2 py-2"
+            [class]="stockRangeInvalid ? 'border-destructive' : ''"
+            [(ngModel)]="filterMaxStock" [ngModelOptions]="{ standalone: true }" />
+        </div>
+
+        <button type="button"
+          class="rounded-md border border-border px-4 py-2 text-sm hover:bg-muted/40"
+          (click)="limpiarFiltrosStock()">
+          Limpiar filtros
+        </button>
+      }
+
+      <div class="ml-auto flex rounded-lg border border-border overflow-hidden">
+        <button type="button"
+          class="px-4 py-2 text-sm transition-colors"
+          [class]="activeTab === 'stock' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted/40'"
+          (click)="activeTab = 'stock'">
+          Stock actual
+        </button>
+        <button type="button"
+          class="px-4 py-2 text-sm transition-colors border-l border-border"
+          [class]="activeTab === 'ajustes' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted/40'"
+          (click)="activeTab = 'ajustes'">
+          Historial de ajustes
+        </button>
+      </div>
     </div>
+    @if (stockRangeInvalid) {
+      <p class="mt-2 text-xs text-destructive">
+        El stock máximo no puede ser menor al stock mínimo.
+      </p>
+    }
   </div>
 
   @if (activeTab === 'stock') {
@@ -107,14 +147,14 @@
           </tr>
         </thead>
         <tbody>
-          @if (!stockRows.length) {
+          @if (!filteredStockRows.length) {
             <tr>
               <td colspan="4" class="px-4 py-12 text-center text-muted-foreground">
-                Sin stock registrado{{ filterWarehouseId ? ' para este almacén' : '' }}.
+                {{ stockRows.length ? 'Sin resultados para los filtros aplicados.' : 'Sin stock registrado.' }}
               </td>
             </tr>
           } @else {
-            @for (r of stockRows; track r.warehouseStockId) {
+            @for (r of filteredStockRows; track r.warehouseStockId) {
               <tr class="border-t border-border/40" [class]="r.stock <= 5 ? 'bg-destructive/5' : ''">
                 <td class="px-4 py-3 text-muted-foreground">{{ r.warehouseName }}</td>
                 <td class="px-4 py-3 font-medium">{{ r.productName }}</td>

@@ -43,6 +43,12 @@ export class SolicitudesComponent implements OnInit {
   saving  = false;
   form    = { productId: '' as number | '', quantity: 1, justification: '' };
 
+  filterStatus: '' | RequestStatus = '';
+  filterProduct = '';
+  filterRequestedBy = '';
+  filterFrom = '';
+  filterTo = '';
+
   get canApprovePurchases(): boolean {
     return this.auth.canApprovePurchases();
   }
@@ -54,6 +60,30 @@ export class SolicitudesComponent implements OnInit {
   get canCreateRequest(): boolean {
     const roles = this.auth.roles();
     return roles.includes('almacenero') || roles.includes('ingeniero');
+  }
+
+  get requesters(): string[] {
+    return Array.from(new Set(this.rows.map(r => r.requestedBy))).sort();
+  }
+
+  get dateRangeInvalid(): boolean {
+    return !!this.filterFrom && !!this.filterTo && this.filterTo < this.filterFrom;
+  }
+
+  get filtered(): PurchaseRequest[] {
+    const term = this.filterProduct.trim().toLowerCase();
+    const from = this.filterFrom ? new Date(this.filterFrom + 'T00:00:00').getTime() : null;
+    const to   = this.filterTo ? new Date(this.filterTo + 'T23:59:59').getTime() : null;
+
+    return this.rows.filter(r => {
+      const matchStatus = !this.filterStatus || r.status === this.filterStatus;
+      const matchProduct = !term || r.productName.toLowerCase().includes(term);
+      const matchRequester = !this.filterRequestedBy || r.requestedBy === this.filterRequestedBy;
+      const time = new Date(r.createdAt).getTime();
+      const matchFrom = from === null || time >= from;
+      const matchTo   = to === null || time <= to;
+      return matchStatus && matchProduct && matchRequester && matchFrom && matchTo;
+    });
   }
 
   async ngOnInit(): Promise<void> {
@@ -78,6 +108,14 @@ export class SolicitudesComponent implements OnInit {
 
   statusLabel(s: RequestStatus): string {
     return { PENDING: 'Pendiente', APPROVED: 'Aprobada', REJECTED: 'Rechazada' }[s];
+  }
+
+  limpiarFiltros(): void {
+    this.filterStatus = '';
+    this.filterProduct = '';
+    this.filterRequestedBy = '';
+    this.filterFrom = '';
+    this.filterTo = '';
   }
 
   resetForm(): void {

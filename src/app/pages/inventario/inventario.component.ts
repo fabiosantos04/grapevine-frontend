@@ -53,6 +53,11 @@ export class InventarioComponent implements OnInit {
   saving = false;
 
   filterWarehouseId: number | '' = '';
+  search = '';
+  filterCategory = '';
+  filterMinStock: number | null = null;
+  filterMaxStock: number | null = null;
+
   form = {
     productId:   '' as number | '',
     warehouseId: '' as number | '',
@@ -110,6 +115,33 @@ export class InventarioComponent implements OnInit {
 
   async applyStockFilter(): Promise<void> {
     await Promise.all([this.loadStock(), this.loadAdjustments()]);
+  }
+
+  get categories(): string[] {
+    return Array.from(new Set(this.stockRows.map(r => r.productCategory).filter(c => !!c))).sort();
+  }
+
+  get stockRangeInvalid(): boolean {
+    return this.filterMinStock !== null && this.filterMaxStock !== null
+      && this.filterMaxStock < this.filterMinStock;
+  }
+
+  get filteredStockRows(): WarehouseStock[] {
+    const term = this.search.trim().toLowerCase();
+    return this.stockRows.filter(r => {
+      const matchSearch = !term || r.productName.toLowerCase().includes(term);
+      const matchCategory = !this.filterCategory || r.productCategory === this.filterCategory;
+      const matchMin = this.filterMinStock === null || r.stock >= this.filterMinStock;
+      const matchMax = this.filterMaxStock === null || r.stock <= this.filterMaxStock;
+      return matchSearch && matchCategory && matchMin && matchMax;
+    });
+  }
+
+  limpiarFiltrosStock(): void {
+    this.search = '';
+    this.filterCategory = '';
+    this.filterMinStock = null;
+    this.filterMaxStock = null;
   }
 
   onProductChange(id: number | ''): void {

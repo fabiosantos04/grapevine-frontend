@@ -69,16 +69,24 @@
 
           <div class="mt-4 space-y-3">
             <div>
-              <label class="text-sm">Depositar a cuenta bancaria al cerrar <span class="text-muted-foreground text-xs">(opcional)</span></label>
+              <label class="text-sm">
+                Depositar a cuenta bancaria al cerrar <span class="text-destructive">*</span>
+              </label>
               <select class="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 [(ngModel)]="depositAccountId" [ngModelOptions]="{ standalone: true }">
-                <option value="">No depositar</option>
+                <option value="">Selecciona una cuenta</option>
                 @for (b of bankAccounts; track b.id) {
                   <option [value]="b.id">
-                    {{ b.bank }} - {{ b.accountNumber }} ({{ b.currency === 'PEN' ? 'S/' : '$' }} {{ b.balance | number: '1.2-2' }})
+                    {{ b.accountName || (b.bank + ' - ' + b.accountNumber) }}
+                    ({{ b.currency === 'PEN' ? 'S/' : '$' }} {{ b.balance | number: '1.2-2' }})
                   </option>
                 }
               </select>
+              @if (!bankAccounts.length) {
+                <p class="mt-1 text-xs text-destructive">
+                  No hay cuentas bancarias activas. Habilita una antes de poder cerrar caja.
+                </p>
+              }
             </div>
             <div class="flex gap-2">
               <button type="button"
@@ -88,8 +96,8 @@
                 {{ saving ? 'Guardando…' : 'Registrar' }}
               </button>
               <button type="button"
-                class="rounded-md border border-destructive px-4 py-2 text-sm text-destructive hover:bg-destructive/10"
-                [disabled]="saving"
+                class="rounded-md border border-destructive px-4 py-2 text-sm text-destructive hover:bg-destructive/10 disabled:opacity-40"
+                [disabled]="!canClose"
                 (click)="closeCash()">
                 Cerrar caja
               </button>

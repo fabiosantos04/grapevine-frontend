@@ -6,17 +6,61 @@
     <div slot="actions">
       <button type="button"
         class="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground"
-        (click)="open = true; resetForm()">
+        (click)="openCreate()">
         + Nueva cuenta
       </button>
     </div>
   </app-page-header>
 
+  <div class="mb-4 flex flex-wrap items-center gap-3">
+    <input
+      class="flex-1 min-w-[200px] rounded-md border border-input bg-background px-3 py-2 text-sm"
+      placeholder="Buscar por nombre, banco o número…"
+      [(ngModel)]="search" [ngModelOptions]="{ standalone: true }" />
+
+    <select class="rounded-md border border-input bg-background px-3 py-2 text-sm"
+      [(ngModel)]="filterBank" [ngModelOptions]="{ standalone: true }">
+      <option value="">Todos los bancos</option>
+      @for (b of banks; track b) {
+        <option [value]="b">{{ b }}</option>
+      }
+    </select>
+
+    <select class="rounded-md border border-input bg-background px-3 py-2 text-sm"
+      [(ngModel)]="filterType" [ngModelOptions]="{ standalone: true }">
+      <option value="">Todos los tipos</option>
+      <option value="AHORRO">Ahorro</option>
+      <option value="CORRIENTE">Corriente</option>
+    </select>
+
+    <select class="rounded-md border border-input bg-background px-3 py-2 text-sm"
+      [(ngModel)]="filterCurrency" [ngModelOptions]="{ standalone: true }">
+      <option value="">Todas las monedas</option>
+      <option value="PEN">Soles (PEN)</option>
+      <option value="USD">Dólares (USD)</option>
+    </select>
+
+    <select class="rounded-md border border-input bg-background px-3 py-2 text-sm"
+      [(ngModel)]="filterEstado" [ngModelOptions]="{ standalone: true }">
+      <option value="todos">Todos los estados</option>
+      <option value="activas">Solo activas</option>
+      <option value="inactivas">Solo inactivas</option>
+    </select>
+  </div>
+
   @if (open) {
     <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" (click.self)="open = false">
       <div class="w-full max-w-md rounded-lg border border-border bg-card p-6 shadow-lg">
-        <h2 class="font-display text-lg font-semibold">Nueva cuenta bancaria</h2>
+        <h2 class="font-display text-lg font-semibold">
+          {{ editingId ? 'Editar cuenta bancaria' : 'Nueva cuenta bancaria' }}
+        </h2>
         <div class="mt-4 space-y-3">
+          <div>
+            <label class="text-sm">Nombre de la cuenta</label>
+            <input class="mt-1 w-full rounded-md border border-input px-3 py-2 text-sm"
+              [(ngModel)]="form.accountName" [ngModelOptions]="{ standalone: true }"
+              placeholder="Ej: Cuenta para pagar proveedores" />
+          </div>
           <div>
             <label class="text-sm">Banco</label>
             <input class="mt-1 w-full rounded-md border border-input px-3 py-2 text-sm"
@@ -46,12 +90,14 @@
               </select>
             </div>
           </div>
-          <div>
-            <label class="text-sm">Saldo inicial</label>
-            <input type="number" min="0" step="0.01"
-              class="mt-1 w-full rounded-md border border-input px-3 py-2 text-sm"
-              [(ngModel)]="form.balance" [ngModelOptions]="{ standalone: true }" />
-          </div>
+          @if (!editingId) {
+            <div>
+              <label class="text-sm">Saldo inicial</label>
+              <input type="number" min="0" step="0.01"
+                class="mt-1 w-full rounded-md border border-input px-3 py-2 text-sm"
+                [(ngModel)]="form.balance" [ngModelOptions]="{ standalone: true }" />
+            </div>
+          }
         </div>
         <div class="mt-6 flex justify-end gap-2">
           <button type="button"
@@ -61,7 +107,7 @@
             class="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-50"
             [disabled]="saving || !form.bank || !form.accountNumber"
             (click)="submit()">
-            {{ saving ? 'Guardando…' : 'Guardar' }}
+            {{ saving ? 'Guardando…' : (editingId ? 'Actualizar' : 'Guardar') }}
           </button>
         </div>
       </div>
@@ -72,6 +118,7 @@
     <table class="w-full text-sm">
       <thead class="bg-muted/40 text-left text-xs uppercase tracking-wider text-muted-foreground">
         <tr>
+          <th class="p-3">Nombre</th>
           <th class="p-3">Banco</th>
           <th class="p-3">Número de cuenta</th>
           <th class="p-3">Tipo</th>
@@ -82,9 +129,10 @@
         </tr>
       </thead>
       <tbody>
-        @for (a of list; track a.id) {
+        @for (a of filtered; track a.id) {
           <tr class="border-t border-border/60" [class]="!a.active ? 'opacity-60' : ''">
-            <td class="p-3 font-medium">{{ a.bank }}</td>
+            <td class="p-3 font-medium">{{ a.accountName || '—' }}</td>
+            <td class="p-3 text-muted-foreground">{{ a.bank }}</td>
             <td class="p-3 font-mono text-muted-foreground">{{ a.accountNumber }}</td>
             <td class="p-3 text-muted-foreground">{{ a.type === 'AHORRO' ? 'Ahorro' : 'Corriente' }}</td>
             <td class="p-3 text-muted-foreground">{{ a.currency }}</td>
@@ -98,20 +146,27 @@
               </span>
             </td>
             <td class="p-3">
-              <button type="button"
-                class="rounded-md px-2 py-1 text-xs"
-                [class]="a.active
-                  ? 'bg-destructive/20 text-destructive hover:bg-destructive/30'
-                  : 'bg-accent/20 text-accent hover:bg-accent/30'"
-                (click)="toggleActive(a)">
-                {{ a.active ? 'Inhabilitar' : 'Habilitar' }}
-              </button>
+              <div class="flex flex-wrap gap-1">
+                <button type="button"
+                  class="rounded-md border border-border px-2 py-1 text-xs hover:bg-muted/40"
+                  (click)="openEdit(a)">Editar</button>
+                <button type="button"
+                  class="rounded-md px-2 py-1 text-xs"
+                  [class]="a.active
+                    ? 'bg-destructive/20 text-destructive hover:bg-destructive/30'
+                    : 'bg-accent/20 text-accent hover:bg-accent/30'"
+                  (click)="toggleActive(a)">
+                  {{ a.active ? 'Inhabilitar' : 'Habilitar' }}
+                </button>
+              </div>
             </td>
           </tr>
         }
-        @if (!list.length) {
+        @if (!filtered.length) {
           <tr>
-            <td colspan="7" class="p-6 text-center text-muted-foreground">Sin cuentas bancarias registradas.</td>
+            <td colspan="8" class="p-6 text-center text-muted-foreground">
+              {{ list.length ? 'Sin resultados para los filtros aplicados.' : 'Sin cuentas bancarias registradas.' }}
+            </td>
           </tr>
         }
       </tbody>
