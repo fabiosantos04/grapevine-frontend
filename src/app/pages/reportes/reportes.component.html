@@ -4,6 +4,40 @@
 <div>
   <app-page-header title="Reportes de saldos" description="Resumen financiero consolidado." />
 
+  <div class="mb-6 rounded-xl border border-border/60 bg-card p-4">
+    <div class="flex flex-wrap items-end gap-3">
+      <div>
+        <label class="text-xs text-muted-foreground">Desde</label>
+        <input type="date" class="mt-1 rounded-md border border-input bg-background px-3 py-2 text-sm"
+          [(ngModel)]="filterFrom" [ngModelOptions]="{ standalone: true }" />
+      </div>
+      <div>
+        <label class="text-xs text-muted-foreground">Hasta</label>
+        <input type="date" class="mt-1 rounded-md border border-input bg-background px-3 py-2 text-sm"
+          [class]="dateRangeInvalid ? 'border-destructive' : ''"
+          [(ngModel)]="filterTo" [ngModelOptions]="{ standalone: true }" />
+      </div>
+      <button type="button"
+        class="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-50"
+        [disabled]="!canApplyFilter"
+        (click)="aplicarFiltro()">
+        Aplicar filtro
+      </button>
+      @if (rangeActive) {
+        <button type="button"
+          class="rounded-md border border-border px-4 py-2 text-sm hover:bg-muted/40"
+          (click)="limpiarFiltro()">
+          Quitar filtro
+        </button>
+      }
+    </div>
+    @if (dateRangeInvalid) {
+      <p class="mt-2 text-xs text-destructive">
+        La fecha "hasta" no puede ser anterior a la fecha "desde".
+      </p>
+    }
+  </div>
+
   <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-8">
     @for (c of cards; track c.label) {
       <div class="rounded-xl border border-border/60 bg-card p-5">
@@ -19,11 +53,13 @@
   @if (report) {
     <div class="grid gap-6 lg:grid-cols-2">
       <div class="rounded-xl border border-border/60 bg-card p-6">
-        <h3 class="mb-4 font-semibold">Ventas vs Compras (últimos 6 meses)</h3>
+        <h3 class="mb-4 font-semibold">
+          Ingresos vs Egresos {{ rangeActive ? '(rango seleccionado)' : '(últimos 6 meses)' }}
+        </h3>
         <canvas #barChart></canvas>
       </div>
       <div class="rounded-xl border border-border/60 bg-card p-6">
-        <h3 class="mb-4 font-semibold">Tendencia de ventas</h3>
+        <h3 class="mb-4 font-semibold">Tendencia de ingresos</h3>
         <canvas #lineChart></canvas>
       </div>
     </div>

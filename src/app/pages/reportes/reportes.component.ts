@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject, ElementRef, ViewChild } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { PageHeaderComponent } from '../../layout/page-header.component';
 import { ApiService } from '../../core/api.service';
 import { LoadingSpinnerComponent } from '../../shared/loading-spinner/loading-spinner.component';
@@ -21,7 +22,7 @@ type FullReport = {
 @Component({
   selector: 'app-reportes',
   standalone: true,
-  imports: [CommonModule, PageHeaderComponent, LoadingSpinnerComponent],
+  imports: [CommonModule, FormsModule, PageHeaderComponent, LoadingSpinnerComponent],
   templateUrl: './reportes.component.html',
   styleUrl: './reportes.component.css',
 })
@@ -35,9 +36,33 @@ export class ReportesComponent implements OnInit {
   report: FullReport | null = null;
   cards: { label: string; value: number; money?: boolean }[] = [];
 
+  filterFrom = '';
+  filterTo = '';
+  rangeActive = false;
+
+  private barChartInstance: any = null;
+  private lineChartInstance: any = null;
+
+  get dateRangeInvalid(): boolean {
+    return !!this.filterFrom && !!this.filterTo && this.filterTo < this.filterFrom;
+  }
+
+  get canApplyFilter(): boolean {
+    return !!this.filterFrom && !!this.filterTo && !this.dateRangeInvalid;
+  }
+
   async ngOnInit(): Promise<void> {
+    await this.loadReport();
+    this.loading = false;
+  }
+
+  async loadReport(): Promise<void> {
     try {
-      this.report = await this.api.get<FullReport>('/reports/full');
+      const query = this.filterFrom && this.filterTo
+        ? `?start=${this.filterFrom}&end=${this.filterTo}`
+        : '';
+      this.report = await this.api.get<FullReport>(`/reports/full${query}`);
+      this.rangeActive = !!query;
       this.cards = [
         { label: 'Órdenes totales',      value: this.report.totalOrders },
         { label: 'Total en ventas',       value: Number(this.report.totalSales),    money: true },
@@ -49,9 +74,22 @@ export class ReportesComponent implements OnInit {
         { label: 'Cajas registradas',     value: this.report.openedRegisters },
       ];
       setTimeout(() => this.renderCharts(), 100);
-    } catch {} finally {
-      this.loading = false;
-    }
+    } catch {}
+  }
+
+  async aplicarFiltro(): Promise<void> {
+    if (!this.canApplyFilter) return;
+    this.loading = true;
+    await this.loadReport();
+    this.loading = false;
+  }
+
+  async limpiarFiltro(): Promise<void> {
+    this.filterFrom = '';
+    this.filterTo = '';
+    this.loading = true;
+    await this.loadReport();
+    this.loading = false;
   }
 
   private renderCharts(): void {
@@ -65,15 +103,18 @@ export class ReportesComponent implements OnInit {
     const Chart = (window as any).Chart;
     if (!Chart) return;
 
+    if (this.barChartInstance) this.barChartInstance.destroy();
+    if (this.lineChartInstance) this.lineChartInstance.destroy();
+
     const barCtx = this.barChartRef.nativeElement.getContext('2d');
     if (barCtx) {
-      new Chart(barCtx, {
+      this.barChartInstance = new Chart(barCtx, {
         type: 'bar',
         data: {
           labels,
           datasets: [
-            { label: 'Ventas',  data: sales, backgroundColor: 'rgba(201, 168, 76, 0.8)', borderRadius: 4 },
-            { label: 'Compras', data: purch, backgroundColor: 'rgba(122, 28, 46, 0.8)',  borderRadius: 4 },
+            { label: 'Ingresos', data: sales, backgroundColor: 'rgba(201, 168, 76, 0.8)', borderRadius: 4 },
+            { label: 'Egresos',  data: purch, backgroundColor: 'rgba(122, 28, 46, 0.8)',  borderRadius: 4 },
           ],
         },
         options: {
@@ -89,12 +130,12 @@ export class ReportesComponent implements OnInit {
 
     const lineCtx = this.lineChartRef.nativeElement.getContext('2d');
     if (lineCtx) {
-      new Chart(lineCtx, {
+      this.lineChartInstance = new Chart(lineCtx, {
         type: 'line',
         data: {
           labels,
           datasets: [{
-            label: 'Ventas',
+            label: 'Ingresos',
             data: sales,
             borderColor: '#c9a84c',
             backgroundColor: 'rgba(201, 168, 76, 0.15)',
