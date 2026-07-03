@@ -32,15 +32,17 @@ describe('AuthForgotComponent', () => {
   });
 
   it('debe iniciar con email vacío, loading false y sent false', () => {
-    expect(component.email).toBe('');
+    expect(component.email.value).toBe('');
     expect(component.loading).toBeFalse();
     expect(component.sent).toBeFalse();
   });
 
   it('onSubmit exitoso debe marcar sent como true', async () => {
     apiSpy.post.and.resolveTo({});
-    component.email = 'usuario@test.com';
+    component.form.setValue({ email: 'usuario@test.com' });
+
     await component.onSubmit();
+
     expect(apiSpy.post).toHaveBeenCalledWith(
       '/auth/forgot-password',
       { email: 'usuario@test.com' }
@@ -51,8 +53,10 @@ describe('AuthForgotComponent', () => {
 
   it('onSubmit fallido debe mostrar error y no marcar sent', async () => {
     apiSpy.post.and.rejectWith(new Error('not found'));
-    component.email = 'noexiste@test.com';
+    component.form.setValue({ email: 'noexiste@test.com' });
+
     await component.onSubmit();
+
     expect(toastSpy.error).toHaveBeenCalledWith(
       'No encontramos una cuenta con ese correo.'
     );
@@ -65,6 +69,7 @@ describe('AuthForgotComponent', () => {
     apiSpy.post.and.returnValue(
       new Promise<void>(res => { resolvePost = res; })
     );
+    component.form.setValue({ email: 'test@test.com' });
     const promise = component.onSubmit();
     expect(component.loading).toBeTrue();
     resolvePost();

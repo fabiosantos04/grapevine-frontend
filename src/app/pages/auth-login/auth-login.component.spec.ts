@@ -12,10 +12,11 @@ describe('AuthLoginComponent', () => {
   let routerSpy: jasmine.SpyObj<Router>;
 
   beforeEach(async () => {
-    authSpy   = jasmine.createSpyObj('AuthService',  ['login']);
+    authSpy   = jasmine.createSpyObj('AuthService',  ['login', 'loading']);
     toastSpy  = jasmine.createSpyObj('ToastService', ['success', 'error']);
     routerSpy = jasmine.createSpyObj('Router',       ['navigateByUrl']);
 
+    Object.defineProperty(authSpy, 'loading', { value: () => false });
     routerSpy.navigateByUrl.and.resolveTo(true);
 
     await TestBed.configureTestingModule({
@@ -37,14 +38,13 @@ describe('AuthLoginComponent', () => {
   });
 
   it('debe iniciar con email y password vacíos', () => {
-    expect(component.email).toBe('');
-    expect(component.password).toBe('');
+    expect(component.email.value).toBe('');
+    expect(component.password.value).toBe('');
   });
 
   it('onSubmit exitoso debe navegar al dashboard y mostrar bienvenida', async () => {
     authSpy.login.and.resolveTo();
-    component.email    = 'admin@test.com';
-    component.password = '1234';
+    component.form.setValue({ email: 'admin@test.com', password: '1234' });
 
     await component.onSubmit();
 
@@ -58,8 +58,7 @@ describe('AuthLoginComponent', () => {
 
   it('onSubmit fallido debe mostrar error de credenciales', async () => {
     authSpy.login.and.rejectWith(new Error('Unauthorized'));
-    component.email    = 'malo@test.com';
-    component.password = 'wrong';
+    component.form.setValue({ email: 'malo@test.com', password: 'wrong' });
 
     await component.onSubmit();
 

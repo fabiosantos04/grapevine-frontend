@@ -78,17 +78,21 @@ describe('ClientesComponent', () => {
 
   it('resetForm debe limpiar el formulario y editingId', () => {
     component.editingId   = 5;
-    component.form.razonSocial = 'Test';
+    component.form.get('razonSocial')!.setValue('Test');
     component.resetForm();
-    expect(component.form.razonSocial).toBe('');
-    expect(component.form.tipoDocumento).toBe('DNI');
+    expect(component.form.get('razonSocial')!.value).toBe('');
+    expect(component.form.get('tipoDocumento')!.value).toBe('DNI');
     expect(component.editingId).toBeNull();
   });
 
   it('submit debe crear un cliente nuevo y recargar la lista', async () => {
     apiSpy.post.and.resolveTo({});
     apiSpy.get.and.resolveTo(mockClientes);
-    component.form = { razonSocial: 'Nuevo', tipoDocumento: 'DNI', documento: '99999999', contacto: 'Pedro', telefono: '111', email: 'n@n.com', segmento: 'normal' };
+    component.form.setValue({
+      razonSocial: 'Nuevo', tipoDocumento: 'DNI',
+      documento: '99999999', contacto: 'Pedro',
+      telefono: '111', email: 'n@n.com', segmento: 'normal'
+});
 
     await component.submit();
 
