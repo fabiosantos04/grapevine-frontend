@@ -1,5 +1,5 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://grapevine-backend-production.up.railway.app',
-  version: '1.0',
+  apiUrl: 'http://localhost:8080',
+  version: '1.1',
 };
